@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CPAP Therapy Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0f172a; --bg2:#1e293b; --card:#1e293b; --card2:#273449;
+    --text:#e2e8f0; --muted:#94a3b8; --line:#334155;
+    --good:#22c55e; --warn:#f59e0b; --bad:#ef4444; --accent:#38bdf8; --accent2:#a78bfa;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; font-family:'Segoe UI',system-ui,-apple-system,Roboto,sans-serif;
+    background:radial-gradient(1200px 600px at 80% -10%,#1d2b4a 0%,var(--bg) 55%);
+    color:var(--text); min-height:100vh;
+  }
+  header{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:20px 28px; border-bottom:1px solid var(--line);
+    background:rgba(15,23,42,.6); backdrop-filter:blur(8px); position:sticky; top:0; z-index:10;
+  }
+  .brand{display:flex; align-items:center; gap:14px}
+  .brand .logo{
+    width:42px; height:42px; border-radius:12px;
+    background:linear-gradient(135deg,var(--accent),var(--accent2));
+    display:grid; place-items:center; font-size:22px; box-shadow:0 6px 20px rgba(56,189,248,.35);
+  }
+  .brand h1{font-size:18px; margin:0; font-weight:650}
+  .brand p{margin:0; font-size:12px; color:var(--muted)}
+  .controls{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .seg{display:flex; background:var(--card2); border:1px solid var(--line); border-radius:10px; overflow:hidden}
+  .seg button{
+    background:transparent; color:var(--muted); border:0; padding:8px 13px; cursor:pointer;
+    font-size:13px; font-weight:600; transition:.15s;
+  }
+  .seg button.active{background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#0b1220}
+  .btn{
+    background:var(--card2); color:var(--text); border:1px solid var(--line);
+    padding:9px 16px; border-radius:10px; cursor:pointer; font-size:13px; font-weight:600; transition:.15s;
+  }
+  .btn:hover{border-color:var(--accent)}
+  .btn.primary{background:linear-gradient(135deg,var(--accent),var(--accent2)); color:#0b1220; border:0}
+  main{padding:24px 28px; max-width:1320px; margin:0 auto}
+
+  /* Drop zone */
+  #drop{
+    margin:40px auto; max-width:640px; padding:48px 32px; text-align:center;
+    border:2px dashed var(--line); border-radius:20px; background:rgba(30,41,59,.4); transition:.2s;
+  }
+  #drop.drag{border-color:var(--accent); background:rgba(56,189,248,.08)}
+  #drop .big{font-size:46px; margin-bottom:8px}
+  #drop h2{margin:6px 0; font-weight:650}
+  #drop p{color:var(--muted); margin:4px 0 20px}
+  .hidden{display:none !important}
+
+  /* Cards */
+  .grid{display:grid; gap:16px}
+  .kpis{grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); margin-bottom:18px}
+  .card{
+    background:linear-gradient(180deg,var(--card),#1a2536); border:1px solid var(--line);
+    border-radius:16px; padding:18px 20px; box-shadow:0 8px 24px rgba(0,0,0,.18);
+  }
+  .kpi .label{font-size:12.5px; color:var(--muted); display:flex; align-items:center; gap:7px; font-weight:600}
+  .kpi .value{font-size:30px; font-weight:750; margin-top:6px; line-height:1}
+  .kpi .value small{font-size:14px; color:var(--muted); font-weight:600}
+  .kpi .sub{font-size:12px; color:var(--muted); margin-top:7px}
+  .dot{width:9px; height:9px; border-radius:50%; display:inline-block}
+  .pill{font-size:11px; font-weight:700; padding:2px 9px; border-radius:999px}
+  .pill.good{background:rgba(34,197,94,.15); color:var(--good)}
+  .pill.warn{background:rgba(245,158,11,.15); color:var(--warn)}
+  .pill.bad{background:rgba(239,68,68,.15); color:var(--bad)}
+
+  .charts{grid-template-columns:repeat(2,1fr)}
+  .charts .full{grid-column:1 / -1}
+  .card h3{margin:0 0 2px; font-size:15px; font-weight:650}
+  .card .csub{color:var(--muted); font-size:12px; margin:0 0 14px}
+  .chart-wrap{position:relative; height:240px}
+  .chart-wrap.tall{height:300px}
+
+  .split{grid-template-columns:1.4fr 1fr}
+  table{width:100%; border-collapse:collapse; font-size:13px}
+  th,td{text-align:left; padding:9px 10px; border-bottom:1px solid var(--line)}
+  th{color:var(--muted); font-weight:600; font-size:12px; position:sticky; top:0; background:var(--card)}
+  tbody tr:hover{background:var(--card2)}
+  .tnum{text-align:right; font-variant-numeric:tabular-nums}
+  .scroll{max-height:330px; overflow:auto; border-radius:10px}
+  .device dl{display:grid; grid-template-columns:auto 1fr; gap:10px 16px; margin:0; font-size:13.5px}
+  .device dt{color:var(--muted)}
+  .device dd{margin:0; text-align:right; font-weight:600}
+  .legend{display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-top:10px}
+  .legend span{display:inline-flex; align-items:center; gap:6px}
+  @media(max-width:860px){.charts,.split{grid-template-columns:1fr} header{flex-direction:column; align-items:stretch}}
+  footer{color:var(--muted); font-size:12px; text-align:center; padding:22px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <div class="logo">🌙</div>
+    <div>
+      <h1>CPAP Therapy Dashboard</h1>
+      <p id="subtitle">Open your <b>statistic.psstat</b> file to begin</p>
+    </div>
+  </div>
+  <div class="controls hidden" id="controls">
+    <div class="seg" id="range">
+      <button data-d="7">7d</button>
+      <button data-d="30" class="active">30d</button>
+      <button data-d="90">90d</button>
+      <button data-d="0">All</button>
+    </div>
+    <button class="btn" id="loadBtn">Open file</button>
+  </div>
+  <input type="file" id="file" accept=".psstat,.pdat" class="hidden">
+</header>
+
+<main>
+  <section id="drop">
+    <div class="big">📂</div>
+    <h2>Drop your <code>statistic.psstat</code> here</h2>
+    <p>or click to browse. Your data never leaves this computer — everything is processed locally in your browser.</p>
+    <button class="btn primary" id="browseBtn">Choose file</button>
+  </section>
+
+  <section id="dash" class="hidden">
+    <div class="grid kpis" id="kpis"></div>
+
+    <div class="grid charts" style="margin-bottom:18px">
+      <div class="card full">
+        <h3>Usage per night</h3>
+        <p class="csub">Hours of therapy each night. The dashed line marks the 4-hour compliance threshold.</p>
+        <div class="chart-wrap tall"><canvas id="cUsage"></canvas></div>
+      </div>
+      <div class="card full">
+        <h3>AHI — events per hour</h3>
+        <p class="csub">Apnea-Hypopnea Index, split into obstructive / central / RERA. Green ≤5 is the goal, amber ≤15.</p>
+        <div class="chart-wrap tall"><canvas id="cAhi"></canvas></div>
+        <div class="legend">
+          <span><span class="dot" style="background:#38bdf8"></span>Obstructive</span>
+          <span><span class="dot" style="background:#a78bfa"></span>Central</span>
+          <span><span class="dot" style="background:#f472b6"></span>RERA</span>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Pressure</h3>
+        <p class="csub">Delivered pressure in hPa — median, P90 and P95.</p>
+        <div class="chart-wrap"><canvas id="cPress"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Leakage</h3>
+        <p class="csub">Share of the night spent in high mask leak.</p>
+        <div class="chart-wrap"><canvas id="cLeak"></canvas></div>
+      </div>
+      <div class="card full">
+        <h3>Deep sleep indicator</h3>
+        <p class="csub">The device's deep-sleep estimate per night, in minutes (higher is better).</p>
+        <div class="chart-wrap"><canvas id="cDeep"></canvas></div>
+      </div>
+    </div>
+
+    <div class="grid split">
+      <div class="card">
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="flex:1">
+            <h3>Recent nights</h3>
+            <p class="csub">Most recent first.</p>
+          </div>
+          <button class="btn" id="exportCsv">⬇ Export CSV</button>
+        </div>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>Date</th><th class="tnum">Usage</th><th class="tnum">AHI</th><th class="tnum">Press.</th><th class="tnum">Leak</th><th class="tnum">Deep</th></tr></thead>
+            <tbody id="tbody"></tbody>
+          </table>
+        </div>
+      </div>
+      <div style="display:grid; gap:16px; align-content:start">
+        <div class="card device">
+          <h3>Device</h3>
+          <p class="csub">From the therapy file header.</p>
+          <dl id="device"></dl>
+        </div>
+        <div class="card">
+          <h3>Nights by usage</h3>
+          <p class="csub">How long you wore the mask.</p>
+          <div class="chart-wrap" style="height:200px"><canvas id="cDist"></canvas></div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>Built from the prisma JOURNAL data format · All processing happens locally in your browser.</footer>
+
+<script>
+"use strict";
+
+// ---------- Parsing (faithful to the original prisma JOURNAL logic) ----------
+function toDateTime(sec){ const d=new Date(1970,0,1); d.setSeconds(sec); return d; }
+
+function compareVersions(a,b){
+  const tr=/(\.0+)+$/;
+  const e=String(a).replace(tr,"").split("."), f=String(b).replace(tr,"").split(".");
+  const g=Math.min(e.length,f.length);
+  for(let i=0;i<g;i++){const d=parseInt(e[i],10)-parseInt(f[i],10); if(d) return d;}
+  return e.length-f.length;
+}
+function getPercentile(hist,p){
+  let sum=0; for(const v of hist) sum+=v;
+  let acc=0; for(let i=0;i<hist.length;i++){ acc+=hist[i]; if(acc>p*sum) return i; }
+  return 0;
+}
+function highLeakPortion(leakHist,usageMin){
+  let dur=0; for(let n=14;n<20 && n<leakHist.length;n++) dur+=leakHist[n];
+  if(!usageMin) return 0;
+  return Math.round(Math.round(2*dur/60)/usageMin*100);
+}
+function modeText(id){
+  const m={1:"CPAP",2:"APAP",3:"AcSV",4:"S",5:"S/T",6:"T",9:"autoS",10:"autoS/T"};
+  return m[parseInt(id)]||"Mode "+id;
+}
+
+function parsePsstat(text){
+  let s=text.replace(/\\/g,"").replace(/"\{/g,"{").replace(/\}"/g,"}");
+  const obj=JSON.parse(s);
+  const fw=obj.dev?obj.dev.fwversion:"0";
+  const days=[];
+  for(const entry of obj.days){
+    const d=entry.day;
+    let date=toDateTime(d["5"]);
+    if(date.getHours()<12){ // night belongs to the day you went to sleep
+      date=new Date(date.getFullYear(),date.getMonth(),date.getDate(),12);
+      date.setTime(date.getTime()-864e5);
+    }
+    const usage=d["6"]||0;
+    let rec={date, usage, obstructive:0, central:0, rera:0, ahi:0, pressure:null, pMedian:null, pMax:null, leak:0, deepSleep:0, oaCount:0};
+    if(usage>=3){
+      let o=Math.round(60*(d["16"]||0)/usage);
+      let c=(compareVersions(fw,"3.0")>=0)?Math.round(60*(d["38"]||0)/usage):Math.round(60*(d["17"]||0)/usage);
+      let r=(compareVersions(fw,"3.5")>=0)?Math.round(60*(d["41"]||0)/usage):0;
+      if(o<0||isNaN(o)) o=0; if(c<0||isNaN(c)) c=0; if(r<0||isNaN(r)) r=0;
+      const pHist=d["21"]||[];
+      const p90=pHist.length?getPercentile(pHist,0.9)/2+4:null;
+      const p50=pHist.length?getPercentile(pHist,0.5)/2+4:null;
+      const p95=pHist.length?getPercentile(pHist,0.95)/2+4:null;
+      rec.obstructive=o; rec.central=c; rec.rera=r; rec.ahi=o+c+r;
+      rec.pressure=p90; rec.pMedian=p50; rec.pMax=p95;
+      rec.leak=highLeakPortion(d["10"]||[],usage);
+      rec.deepSleep=(d["42"]!=null)?d["42"]:0;       // "Deep sleep indicator" in minutes
+      rec.oaCount=d["16"]||0;                          // absolute obstructive event count
+    }
+    days.push(rec);
+  }
+  days.sort((a,b)=>a.date-b.date);
+
+  // dedupe same calendar day (keep later/last)
+  const seen=new Map();
+  for(const r of days) seen.set(r.date.toDateString(), r);
+  const clean=[...seen.values()].sort((a,b)=>a.date-b.date);
+
+  // device info
+  let dev={};
+  try{
+    const last=obj.days[obj.days.length-1].day;
+    const cfg=last.cfg.cfg;
+    // lifetime cumulative therapy minutes (odometer) — fields 49/50, or "use" block
+    let lifeMin=0;
+    for(const e of obj.days){ const v=e.day["49"]; if(typeof v==="number"&&v>lifeMin) lifeMin=v; }
+    if(obj.use && obj.use["3"]>lifeMin) lifeMin=obj.use["3"];
+    dev={
+      name: getDeviceName(obj.dev.devid),
+      fw: fw,
+      mode: modeText(cfg["6"]),
+      pmin: (cfg["9"]/100), pmax:(cfg["10"]/100),
+      sn: obj.dev.sn,
+      lifeHours: lifeMin?Math.round(lifeMin/60):null
+    };
+  }catch(e){}
+  return {days:clean, dev};
+}
+function getDeviceName(devid){
+  const map={"0x92":"prisma SMART / SOFT"};
+  return map[devid]||"prisma device";
+}
+
+// ---------- State & helpers ----------
+let DATA=null, rangeDays=30;
+const CH={};
+const fmtH=m=>{m=Math.round(m); return Math.floor(m/60)+":"+String(m%60).padStart(2,"0");};
+const avg=a=>a.length?a.reduce((s,x)=>s+x,0)/a.length:0;
+
+function filtered(){
+  if(!DATA) return [];
+  const d=DATA.days;
+  if(!rangeDays) return d;
+  return d.slice(-rangeDays);
+}
+
+function ahiClass(v){return v<=5?"good":v<=15?"warn":"bad";}
+function usageClass(h){return h>=4?"good":h>=2?"warn":"bad";}
+function leakClass(v){return v<=10?"good":v<=30?"warn":"bad";}
+
+// ---------- KPIs ----------
+function renderKpis(rows){
+  const used=rows.filter(r=>r.usage>=3);
+  const avgUse=avg(used.map(r=>r.usage));
+  const avgAhi=avg(used.map(r=>r.ahi));
+  const avgPress=avg(used.filter(r=>r.pressure!=null).map(r=>r.pressure));
+  const avgLeak=avg(used.map(r=>r.leak));
+  const avgDeep=avg(used.map(r=>r.deepSleep));
+  const compliant=used.filter(r=>r.usage>=240).length;
+  const compPct=rows.length?Math.round(compliant/rows.length*100):0;
+  const useH=avgUse/60;
+
+  const cards=[
+    {label:"Avg usage", icon:"⏱️", value:fmtH(avgUse), unit:" h", sub:`${used.length} nights with data`, cls:usageClass(useH)},
+    {label:"Avg AHI", icon:"💨", value:avgAhi.toFixed(1), unit:" /h", sub:avgAhi<=5?"On target (≤5)":avgAhi<=15?"Mild (5–15)":"High (>15)", cls:ahiClass(avgAhi)},
+    {label:"Pressure P90", icon:"🎚️", value:avgPress?avgPress.toFixed(1):"—", unit:" hPa", sub:"90th percentile", cls:""},
+    {label:"Leakage", icon:"🌬️", value:Math.round(avgLeak), unit:" %", sub:avgLeak<=10?"Good seal":avgLeak<=30?"Watch the mask":"High leak", cls:leakClass(avgLeak)},
+    {label:"Deep sleep", icon:"😴", value:Math.round(avgDeep), unit:" min", sub:"Device deep-sleep indicator", cls:""},
+    {label:"Compliance", icon:"✅", value:compPct, unit:" %", sub:`${compliant}/${rows.length} nights ≥4h`, cls:compPct>=70?"good":compPct>=40?"warn":"bad"},
+  ];
+  document.getElementById("kpis").innerHTML=cards.map(c=>`
+    <div class="card kpi">
+      <div class="label">${c.icon} ${c.label}
+        ${c.cls?`<span class="pill ${c.cls}" style="margin-left:auto">${c.cls==="good"?"Good":c.cls==="warn"?"Fair":"Poor"}</span>`:""}
+      </div>
+      <div class="value">${c.value}<small>${c.unit}</small></div>
+      <div class="sub">${c.sub}</div>
+    </div>`).join("");
+}
+
+// ---------- Charts ----------
+const GRID="#1f2c44", TICK="#94a3b8";
+function baseOpts(extra={}){
+  return Object.assign({
+    responsive:true, maintainAspectRatio:false,
+    interaction:{mode:"index",intersect:false},
+    plugins:{legend:{display:false},tooltip:{backgroundColor:"#0b1220",borderColor:"#334155",borderWidth:1,padding:10}},
+    scales:{
+      x:{grid:{color:GRID},ticks:{color:TICK,maxRotation:0,autoSkip:true,maxTicksLimit:12}},
+      y:{grid:{color:GRID},ticks:{color:TICK},beginAtZero:true}
+    }
+  },extra);
+}
+function labelsOf(rows){return rows.map(r=>r.date.toLocaleDateString(undefined,{month:"short",day:"numeric"}));}
+function destroy(){Object.values(CH).forEach(c=>c&&c.destroy());}
+
+// Build an inline plugin that draws one or more dashed horizontal threshold lines.
+function thresholdPlugin(lines){
+  return {
+    id:"thresholds",
+    afterDatasetsDraw(c){
+      const{ctx,chartArea:{left,right},scales:{y}}=c;
+      for(const ln of lines){
+        const yy=y.getPixelForValue(ln.v); if(isNaN(yy)) continue;
+        ctx.save();ctx.beginPath();ctx.setLineDash([5,4]);ctx.lineWidth=1.4;
+        ctx.strokeStyle=ln.color||"#64748b";
+        ctx.moveTo(left,yy);ctx.lineTo(right,yy);ctx.stroke();ctx.restore();
+      }
+    }
+  };
+}
+
+function renderCharts(rows){
+  destroy();
+  const L=labelsOf(rows);
+  const usageH=rows.map(r=>+(r.usage/60).toFixed(2));
+  // Usage
+  CH.u=new Chart(cUsage,{type:"bar",
+    data:{labels:L,datasets:[{label:"Hours",data:usageH,
+      backgroundColor:rows.map(r=>r.usage>=240?"#22c55e":r.usage>=120?"#f59e0b":"#ef4444"),borderRadius:5}]},
+    options:baseOpts({plugins:{legend:{display:false},
+      tooltip:{callbacks:{label:c=>" "+fmtH(rows[c.dataIndex].usage)+" h"},backgroundColor:"#0b1220",borderColor:"#334155",borderWidth:1,padding:10}},
+      scales:{x:{grid:{color:GRID},ticks:{color:TICK,autoSkip:true,maxTicksLimit:12}},
+        y:{grid:{color:GRID},ticks:{color:TICK,callback:v=>v+"h"},beginAtZero:true,suggestedMax:9}}}),
+    plugins:[thresholdPlugin([{v:4,color:"#64748b"}])]});
+
+  // AHI stacked
+  CH.a=new Chart(cAhi,{type:"bar",
+    data:{labels:L,datasets:[
+      {label:"Obstructive",data:rows.map(r=>r.obstructive),backgroundColor:"#38bdf8",stack:"a",borderRadius:3},
+      {label:"Central",data:rows.map(r=>r.central),backgroundColor:"#a78bfa",stack:"a",borderRadius:3},
+      {label:"RERA",data:rows.map(r=>r.rera),backgroundColor:"#f472b6",stack:"a",borderRadius:3},
+    ]},
+    options:baseOpts({plugins:{legend:{display:false},
+      tooltip:{callbacks:{footer:items=>{const r=rows[items[0].dataIndex];return "Total AHI: "+r.ahi.toFixed(1);}},
+        backgroundColor:"#0b1220",borderColor:"#334155",borderWidth:1,padding:10}},
+      scales:{x:{stacked:true,grid:{color:GRID},ticks:{color:TICK,autoSkip:true,maxTicksLimit:12}},
+        y:{stacked:true,grid:{color:GRID},ticks:{color:TICK},beginAtZero:true}}}),
+    plugins:[thresholdPlugin([{v:5,color:"#22c55e"},{v:15,color:"#f59e0b"}])]});
+
+  // Pressure — median (P50), P90 and P95
+  CH.p=new Chart(cPress,{type:"line",
+    data:{labels:L,datasets:[
+      {label:"P95",data:rows.map(r=>r.pMax),borderColor:"#a78bfa",borderWidth:1.4,borderDash:[4,3],tension:.3,pointRadius:0,spanGaps:true,fill:false},
+      {label:"P90",data:rows.map(r=>r.pressure),borderColor:"#38bdf8",backgroundColor:"rgba(56,189,248,.12)",fill:true,tension:.3,pointRadius:0,spanGaps:true,borderWidth:2},
+      {label:"Median",data:rows.map(r=>r.pMedian),borderColor:"#22c55e",borderWidth:1.4,tension:.3,pointRadius:0,spanGaps:true,fill:false},
+    ]},
+    options:baseOpts({plugins:{legend:{display:true,labels:{color:TICK,boxWidth:12,font:{size:11}}},
+      tooltip:{backgroundColor:"#0b1220",borderColor:"#334155",borderWidth:1,padding:10,callbacks:{label:c=>" "+c.dataset.label+": "+(c.parsed.y==null?"—":c.parsed.y.toFixed(1)+" hPa")}}},
+      scales:{x:{grid:{color:GRID},ticks:{color:TICK,autoSkip:true,maxTicksLimit:8}},
+      y:{grid:{color:GRID},ticks:{color:TICK,callback:v=>v+" hPa"},beginAtZero:false}}})});
+
+  // Leak
+  CH.l=new Chart(cLeak,{type:"bar",
+    data:{labels:L,datasets:[{data:rows.map(r=>r.leak),
+      backgroundColor:rows.map(r=>r.leak<=10?"#22c55e":r.leak<=30?"#f59e0b":"#ef4444"),borderRadius:4}]},
+    options:baseOpts({scales:{x:{grid:{color:GRID},ticks:{color:TICK,autoSkip:true,maxTicksLimit:8}},
+      y:{grid:{color:GRID},ticks:{color:TICK,callback:v=>v+"%"},beginAtZero:true}}})});
+
+  // Deep sleep indicator (minutes) — device-reported metric
+  CH.s=new Chart(cDeep,{type:"line",
+    data:{labels:L,datasets:[{data:rows.map(r=>r.usage>=3?r.deepSleep:null),borderColor:"#22d3ee",
+      backgroundColor:"rgba(34,211,238,.12)",fill:true,tension:.3,pointRadius:0,spanGaps:true,borderWidth:2}]},
+    options:baseOpts({plugins:{legend:{display:false},
+      tooltip:{backgroundColor:"#0b1220",borderColor:"#334155",borderWidth:1,padding:10,callbacks:{label:c=>" "+(c.parsed.y==null?"—":c.parsed.y+" min")}}},
+      scales:{x:{grid:{color:GRID},ticks:{color:TICK,autoSkip:true,maxTicksLimit:8}},
+      y:{grid:{color:GRID},ticks:{color:TICK,callback:v=>v+"m"},beginAtZero:true}}})});
+
+  // Distribution doughnut
+  const b=[0,0,0,0,0,0]; // none,<3,3-4,4-5,5-6,6+
+  for(const r of rows){
+    const m=r.usage;
+    if(m<=2) b[0]++; else if(m<=180) b[1]++; else if(m<=240) b[2]++;
+    else if(m<=300) b[3]++; else if(m<=360) b[4]++; else b[5]++;
+  }
+  CH.d=new Chart(cDist,{type:"doughnut",
+    data:{labels:["No use","<3h","3–4h","4–5h","5–6h","6h+"],
+      datasets:[{data:b,backgroundColor:["#475569","#ef4444","#f59e0b","#84cc16","#22c55e","#10b981"],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:"62%",
+      plugins:{legend:{position:"right",labels:{color:TICK,boxWidth:12,font:{size:11}}}}}});
+}
+
+// ---------- Table & device ----------
+function renderTable(rows){
+  const tb=document.getElementById("tbody");
+  tb.innerHTML=rows.slice().reverse().map(r=>{
+    if(r.usage<3) return `<tr><td>${r.date.toLocaleDateString()}</td><td class="tnum" colspan="5" style="color:var(--muted)">no usage</td></tr>`;
+    const ac=ahiClass(r.ahi),lc=leakClass(r.leak);
+    return `<tr>
+      <td>${r.date.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}</td>
+      <td class="tnum">${fmtH(r.usage)}</td>
+      <td class="tnum" style="color:var(--${ac==='good'?'good':ac==='warn'?'warn':'bad'})">${r.ahi.toFixed(1)}</td>
+      <td class="tnum">${r.pressure!=null?r.pressure.toFixed(1):"—"}</td>
+      <td class="tnum" style="color:var(--${lc==='good'?'good':lc==='warn'?'warn':'bad'})">${Math.round(r.leak)}%</td>
+      <td class="tnum">${r.deepSleep||0}m</td>
+    </tr>`;
+  }).join("");
+}
+function renderDevice(){
+  const d=DATA.dev||{};
+  const rows=[
+    ["Device",d.name||"—"],["Firmware",d.fw||"—"],["Mode",d.mode||"—"],
+    ["Pressure",(d.pmin!=null?`${d.pmin}–${d.pmax} hPa`:"—")],
+    ["Lifetime use",(d.lifeHours!=null?`${d.lifeHours.toLocaleString()} h`:"—")],
+    ["Total nights",DATA.days.length]
+  ];
+  document.getElementById("device").innerHTML=rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join("");
+}
+
+// ---------- CSV export ----------
+function exportCsv(){
+  const rows=filtered();
+  const head=["Date","Usage (h:mm)","Usage (min)","AHI","Obstructive","Central","RERA","OA count","Pressure median (hPa)","Pressure P90 (hPa)","Pressure P95 (hPa)","High leak (%)","Deep sleep (min)"];
+  const lines=[head.join(",")];
+  for(const r of rows){
+    const cell=[
+      r.date.toISOString().slice(0,10),
+      r.usage>=3?fmtH(r.usage):"0:00",
+      r.usage,
+      r.usage>=3?r.ahi.toFixed(1):"",
+      r.obstructive, r.central, r.rera, r.oaCount,
+      r.pMedian!=null?r.pMedian.toFixed(1):"",
+      r.pressure!=null?r.pressure.toFixed(1):"",
+      r.pMax!=null?r.pMax.toFixed(1):"",
+      r.usage>=3?Math.round(r.leak):"",
+      r.usage>=3?r.deepSleep:""
+    ];
+    lines.push(cell.join(","));
+  }
+  const blob=new Blob([lines.join("\r\n")],{type:"text/csv;charset=utf-8;"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  const tag=rangeDays?`${rangeDays}d`:"all";
+  a.href=url; a.download=`cpap_nights_${tag}_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+// ---------- Orchestration ----------
+function render(){
+  const rows=filtered();
+  renderKpis(rows); renderCharts(rows); renderTable(rows); renderDevice();
+  const used=rows.filter(r=>r.usage>=3).length;
+  document.getElementById("subtitle").textContent=
+    `${DATA.days.length} nights loaded · showing ${rows.length} (${used} with therapy)`;
+}
+
+function loadText(text,name){
+  try{
+    DATA=parsePsstat(text);
+    if(!DATA.days.length){alert("No therapy days found in this file.");return;}
+    document.getElementById("drop").classList.add("hidden");
+    document.getElementById("dash").classList.remove("hidden");
+    document.getElementById("controls").classList.remove("hidden");
+    render();
+  }catch(e){
+    console.error(e);
+    alert("Could not read this file.\nPlease pick a valid statistic.psstat file.\n\n"+e.message);
+  }
+}
+function handleFile(f){
+  if(!f) return;
+  const r=new FileReader();
+  r.onload=e=>loadText(e.target.result,f.name);
+  r.onerror=()=>alert("Unable to read the file.");
+  r.readAsText(f);
+}
+
+// events
+const fileInput=document.getElementById("file");
+document.getElementById("browseBtn").onclick=()=>fileInput.click();
+document.getElementById("loadBtn").onclick=()=>fileInput.click();
+fileInput.onchange=e=>handleFile(e.target.files[0]);
+
+const drop=document.getElementById("drop");
+drop.onclick=e=>{ if(e.target.id!=="browseBtn") fileInput.click(); };
+["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("drag");}));
+["dragleave","drop"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("drag");}));
+drop.addEventListener("drop",e=>handleFile(e.dataTransfer.files[0]));
+window.addEventListener("dragover",e=>e.preventDefault());
+window.addEventListener("drop",e=>e.preventDefault());
+
+document.getElementById("range").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  document.querySelectorAll("#range button").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active"); rangeDays=+b.dataset.d; if(DATA) render();
+});
+
+document.getElementById("exportCsv").addEventListener("click",()=>{ if(DATA) exportCsv(); });
+
+// Auto-load statistic.psstat if served next to this file (e.g. via a local server)
+fetch("statistic.psstat").then(r=>r.ok?r.text():Promise.reject()).then(t=>loadText(t,"statistic.psstat")).catch(()=>{});
+</script>
+</body>
+</html>
