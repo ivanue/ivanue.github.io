@@ -153,14 +153,23 @@ const EXCUSES = [
   "Se descompuso el carro"
 ];
 const COLORS = ["#ff2e88","#7c3aed","#06b6d4","#22c55e","#f59e0b","#ef4444","#3b82f6","#ec4899","#14b8a6"];
+const TINY_LABEL = "¡HOY SÍ VOY!";
+const TINY_SIZE = 16; // degrees – the teeny "trap" wedge
+
+// Build wheel segments: the 9 excuses (equal slices) + 1 tiny wedge.
+const SEG = [];
+const BIG = (360 - TINY_SIZE) / EXCUSES.length;
+EXCUSES.forEach((e,i)=> SEG.push({label:e, size:BIG, real:i, color:COLORS[i%COLORS.length]}));
+SEG.push({label:TINY_LABEL, size:TINY_SIZE, real:null, color:"#fde047", tiny:true});
+let _acc=0;
+SEG.forEach(s=>{ s.start=_acc; s.center=_acc+s.size/2; _acc+=s.size; });
+const HOY_INDEX = SEG.length-1;
 
 const canvas = document.getElementById("wheel");
 const ctx = canvas.getContext("2d");
-const N = EXCUSES.length;
-const ARC = (Math.PI*2)/N;
 const R = canvas.width/2;
 
-function wrap(ctx,text,x,maxw){
+function wrap(ctx,text,maxw){
   const words=text.split(" "); let line=""; const lines=[];
   for(const w of words){
     if(ctx.measureText(line+w).width>maxw && line){lines.push(line.trim());line=w+" ";}
@@ -172,28 +181,35 @@ function wrap(ctx,text,x,maxw){
 
 function drawWheel(){
   ctx.clearRect(0,0,canvas.width,canvas.height);
-  for(let i=0;i<N;i++){
-    const a0=i*ARC - Math.PI/2 - ARC/2;
+  SEG.forEach(s=>{
+    const a0=(s.start-90)*Math.PI/180;
+    const a1=(s.start+s.size-90)*Math.PI/180;
     ctx.beginPath();
     ctx.moveTo(R,R);
-    ctx.arc(R,R,R-6,a0,a0+ARC);
+    ctx.arc(R,R,R-6,a0,a1);
     ctx.closePath();
-    ctx.fillStyle=COLORS[i%COLORS.length];
+    ctx.fillStyle=s.color;
     ctx.fill();
     ctx.strokeStyle="rgba(255,255,255,.85)"; ctx.lineWidth=4; ctx.stroke();
-    // text aligned to this segment's center radius
+    // label along the segment's center radius
     ctx.save();
     ctx.translate(R,R);
-    ctx.rotate(i*ARC - Math.PI/2);
-    ctx.fillStyle="#fff";
-    ctx.font="bold 27px Trebuchet MS, sans-serif";
+    ctx.rotate((s.center-90)*Math.PI/180);
     ctx.textAlign="right"; ctx.textBaseline="middle";
     ctx.shadowColor="rgba(0,0,0,.45)"; ctx.shadowBlur=4; ctx.shadowOffsetY=1;
-    const lines=wrap(ctx,EXCUSES[i],0,R-95);
-    const lh=28; const start=-(lines.length-1)*lh/2;
-    lines.forEach((ln,k)=>ctx.fillText(ln,R-26,start+k*lh));
+    if(s.tiny){
+      ctx.fillStyle="#7c2d12";
+      ctx.font="900 15px Trebuchet MS, sans-serif";
+      ctx.fillText(s.label, R-14, 0);
+    } else {
+      ctx.fillStyle="#fff";
+      ctx.font="bold 27px Trebuchet MS, sans-serif";
+      const lines=wrap(ctx,s.label,R-95);
+      const lh=28; const st=-(lines.length-1)*lh/2;
+      lines.forEach((ln,k)=>ctx.fillText(ln,R-26,st+k*lh));
+    }
     ctx.restore();
-  }
+  });
 }
 drawWheel();
 
@@ -234,62 +250,104 @@ function fanfare(){
   });
 }
 
+function tease(){
+  const c=ac(); const seq=[[330,0],[294,.16],[392,.36]];
+  seq.forEach(([f,dt])=>{
+    const o=c.createOscillator(),g=c.createGain();
+    o.type="sawtooth"; o.frequency.value=f;
+    const st=c.currentTime+dt;
+    g.gain.setValueAtTime(.0001,st);
+    g.gain.exponentialRampToValueAtTime(.2,st+.03);
+    g.gain.exponentialRampToValueAtTime(.0001,st+.22);
+    o.connect(g).connect(c.destination); o.start(st); o.stop(st+.26);
+  });
+}
+
 /* ---------- Spin logic ---------- */
 const wheelBox=document.getElementById("wheelBox");
 const spinBtn=document.getElementById("spin");
 const overlay=document.getElementById("overlay");
-// Today's default: first spin lands on "Ando malo del estómago" (index 0), then random.
+// Today's default: the real result of the first spin is "Ando malo del estómago" (0), then random.
 let rotation=0, spinning=false, forced=0;
+const NREAL = EXCUSES.length;
 
-function landIndex(deg){
-  // pointer at top. segment i centered at i*ARC initially.
-  const norm=((deg%360)+360)%360;
-  const idx=Math.round(((360-norm)%360)/(360/N))%N;
-  return idx;
-}
-
-function tickWhileSpinning(total){
-  // schedule ticks that slow down with the wheel
-  let last=0;
-  const startRot=rotation;
-  const t0=performance.now();
-  function frame(now){
-    if(!spinning) return;
-    const seg=Math.floor((rotation)/(360/N));
-    if(seg!==last){ last=seg; tick(); }
-    requestAnimationFrame(frame);
-  }
-  // approximate rotation via CSS by reading computed transform
-  function frame2(){
+function tickWhileSpinning(){
+  let last=null;
+  function frame(){
     if(!spinning){return;}
     const st=getComputedStyle(wheelBox).transform;
     if(st && st!=="none"){
       const m=st.match(/matrix\(([^)]+)\)/);
       if(m){const v=m[1].split(",");const a=Math.atan2(parseFloat(v[1]),parseFloat(v[0]));
-        let d=a*180/Math.PI; const seg=Math.floor((((d%360)+360)%360)/(360/N));
+        const seg=Math.floor(((((a*180/Math.PI)%360)+360)%360)/18);
         if(seg!==last){last=seg;tick();}}
     }
-    requestAnimationFrame(frame2);
+    requestAnimationFrame(frame);
   }
-  requestAnimationFrame(frame2);
+  requestAnimationFrame(frame);
+}
+
+// Rotate so segment `segIndex`'s centre stops under the top pointer.
+function alignTo(segIndex, turns){
+  const center=SEG[segIndex].center;
+  const desired=((-center)%360+360)%360;
+  const cur=((rotation%360)+360)%360;
+  let delta=360*turns + (((desired-cur)%360)+360)%360;
+  if(delta<360) delta+=360;
+  rotation+=delta;
+}
+
+// Nudge by the SHORTEST signed angle onto a segment (no full turns) — a little hop.
+function jumpTo(segIndex){
+  const center=SEG[segIndex].center;
+  const desired=((-center)%360+360)%360;
+  const cur=((rotation%360)+360)%360;
+  let delta=((desired-cur)%360+360)%360;
+  if(delta>180) delta-=360;
+  rotation+=delta;
+}
+
+function boing(){
+  const c=ac(); const o=c.createOscillator(),g=c.createGain();
+  o.type="sine";
+  o.frequency.setValueAtTime(170,c.currentTime);
+  o.frequency.exponentialRampToValueAtTime(560,c.currentTime+.1);
+  o.frequency.exponentialRampToValueAtTime(300,c.currentTime+.3);
+  g.gain.setValueAtTime(.0001,c.currentTime);
+  g.gain.exponentialRampToValueAtTime(.28,c.currentTime+.02);
+  g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+.4);
+  o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime+.42);
 }
 
 function spin(){
   if(spinning) return;
   ac(); // unlock audio
   spinning=true; spinBtn.disabled=true;
-  const target = (forced!=null)? forced : Math.floor(Math.random()*N);
+  const real=(forced!=null)? forced : Math.floor(Math.random()*NREAL);
   forced=null;
-  const turns=5+Math.floor(Math.random()*3);
-  const targetAngle = 360*turns + (360 - target*(360/N));
-  rotation += targetAngle;
+
+  // Stage 1: tease — slow down right onto the tiny "¡HOY SÍ VOY!" wedge.
+  wheelBox.style.transition="transform 4.2s cubic-bezier(.12,.62,.06,1)";
+  alignTo(HOY_INDEX, 4);
   wheelBox.style.transform=`rotate(${rotation}deg)`;
   tickWhileSpinning();
+
   setTimeout(()=>{
-    spinning=false; spinBtn.disabled=false;
-    const idx=landIndex(rotation);
-    showResult(idx);
-  },6100);
+    tease();                 // suspense beat
+    document.getElementById("hub").textContent="❓";
+    // Stage 2: psych! a quick, silly little hop off the tiny wedge onto the real excuse.
+    setTimeout(()=>{
+      boing();
+      wheelBox.style.transition="transform .55s cubic-bezier(.34,1.45,.5,1)";
+      jumpTo(real);
+      wheelBox.style.transform=`rotate(${rotation}deg)`;
+      setTimeout(()=>{
+        spinning=false; spinBtn.disabled=false;
+        document.getElementById("hub").textContent="🎯";
+        showResult(real);
+      },650);
+    },650);
+  },4250);
 }
 
 function showResult(i){
