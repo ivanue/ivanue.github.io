@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>🎡 La Rueda de los Pretextos</title>
+<meta name="description" content="Gira la rueda para descubrir por qué hoy no toca gym.">
+<style>
+  :root{
+    --gold:#ffd54a; --gold2:#ff9e00; --pink:#ff2e88; --purple:#6d28d9;
+    --ink:#1a0b2e; --good:#22c55e;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{
+    font-family:"Trebuchet MS",system-ui,sans-serif;
+    color:#fff; text-align:center;
+    background:#1a0b2e url("assets/bg.png") center/cover no-repeat fixed;
+    min-height:100%; overflow-x:hidden;
+    display:flex; flex-direction:column; align-items:center;
+  }
+  body::before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse at center,rgba(26,11,46,.15),rgba(26,11,46,.75));z-index:0}
+  .wrap{position:relative;z-index:1;width:100%;max-width:760px;padding:18px 14px 60px;display:flex;flex-direction:column;align-items:center}
+
+  h1{
+    font-size:clamp(28px,7vw,52px); margin:.2em 0 0; line-height:1.05;
+    text-transform:uppercase; letter-spacing:1px;
+    background:linear-gradient(180deg,#fff,var(--gold) 55%,var(--gold2));
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    text-shadow:0 2px 0 rgba(0,0,0,.25);
+    filter:drop-shadow(0 3px 10px rgba(255,158,0,.5));
+  }
+  .sub{font-size:clamp(13px,3.4vw,18px);color:#ffe9b3;margin:.35em 0 6px;font-weight:bold;text-shadow:0 2px 6px #000}
+
+  .stage{position:relative;width:min(86vw,440px,72vh);aspect-ratio:1;margin:6px auto 0;display:grid;place-items:center}
+  /* glowing bulb ring */
+  .bulbs{position:absolute;inset:-3%;border-radius:50%;z-index:0}
+  .bulb{position:absolute;width:11px;height:11px;margin:-5.5px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#fff,var(--gold) 60%,var(--gold2));
+    box-shadow:0 0 8px 2px rgba(255,200,60,.85);animation:blink 1s linear infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.25}}
+
+  .wheelBox{position:relative;width:92%;aspect-ratio:1;border-radius:50%;
+    box-shadow:0 0 0 10px #2b1559,0 0 0 16px var(--gold),0 18px 50px rgba(0,0,0,.6);
+    transition:transform 6s cubic-bezier(.12,.62,.06,1)}
+  canvas{display:block;width:100%;height:100%;border-radius:50%}
+  .hub{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:18%;aspect-ratio:1;border-radius:50%;z-index:3;
+    background:radial-gradient(circle at 35% 30%,#fff,var(--gold) 55%,var(--gold2));
+    box-shadow:0 0 0 5px #2b1559,inset 0 -4px 10px rgba(0,0,0,.3);
+    display:grid;place-items:center;font-size:clamp(18px,5vw,30px)}
+  .pointer{position:absolute;top:-2%;left:50%;transform:translateX(-50%);z-index:4;
+    width:0;height:0;border-left:18px solid transparent;border-right:18px solid transparent;
+    border-top:34px solid var(--pink);filter:drop-shadow(0 3px 4px rgba(0,0,0,.6))}
+  .pointer::after{content:"";position:absolute;top:-40px;left:-10px;width:20px;height:20px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%,#fff,var(--pink));box-shadow:0 0 10px var(--pink)}
+
+  .spinBtn{margin:22px auto 0;border:0;cursor:pointer;font-family:inherit;
+    font-size:clamp(20px,5.5vw,30px);font-weight:900;text-transform:uppercase;letter-spacing:1px;
+    color:#3a0d2a;padding:16px 42px;border-radius:50px;
+    background:linear-gradient(180deg,#fff5cc,var(--gold) 40%,var(--gold2));
+    box-shadow:0 8px 0 #b35e00,0 14px 26px rgba(0,0,0,.45);
+    transition:transform .08s, box-shadow .08s}
+  .spinBtn:active{transform:translateY(6px);box-shadow:0 2px 0 #b35e00,0 6px 14px rgba(0,0,0,.45)}
+  .spinBtn:disabled{filter:grayscale(.6) brightness(.8);cursor:not-allowed}
+
+  .mascot{position:fixed;bottom:-6px;right:-10px;width:min(30vw,180px);z-index:1;
+    filter:drop-shadow(0 6px 14px rgba(0,0,0,.5));pointer-events:none;opacity:.96}
+
+  /* result modal */
+  .overlay{position:fixed;inset:0;z-index:20;display:none;place-items:center;padding:20px;
+    background:rgba(10,4,24,.72);backdrop-filter:blur(4px)}
+  .overlay.show{display:grid;animation:fade .3s ease}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .card{position:relative;width:min(92vw,460px);background:linear-gradient(180deg,#2a1257,#190a36);
+    border:3px solid var(--gold);border-radius:24px;padding:30px 24px 26px;
+    box-shadow:0 24px 70px rgba(0,0,0,.7);transform:scale(.7);animation:pop .45s cubic-bezier(.2,1.4,.4,1) forwards}
+  @keyframes pop{to{transform:scale(1)}}
+  .card .tag{font-size:14px;letter-spacing:3px;color:var(--gold);font-weight:bold;text-transform:uppercase}
+  .card .excuse{font-size:clamp(26px,7vw,40px);font-weight:900;margin:12px 0 6px;line-height:1.1;
+    background:linear-gradient(180deg,#fff,var(--gold));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .stamp{width:150px;margin:10px auto 0;display:block;transform:rotate(-12deg)}
+  .row{display:flex;gap:10px;margin-top:18px}
+  .row button{flex:1;border:0;cursor:pointer;font-family:inherit;font-weight:800;font-size:16px;
+    padding:13px;border-radius:14px;color:#2a0f1e}
+  .again{background:linear-gradient(180deg,#fff5cc,var(--gold) 50%,var(--gold2));box-shadow:0 5px 0 #b35e00}
+  .copy{background:linear-gradient(180deg,#d6ffe2,var(--good));color:#06351a;box-shadow:0 5px 0 #0c7a39}
+  .row button:active{transform:translateY(4px);box-shadow:none}
+
+  .foot{position:fixed;bottom:8px;left:0;right:0;z-index:5;font-size:11px;color:#caa9ff;opacity:.7}
+  .foot a{color:#ffd54a;text-decoration:none}
+  /* confetti */
+  .confetti{position:fixed;inset:0;pointer-events:none;z-index:15;overflow:hidden}
+  .confetti i{position:absolute;top:-12px;width:10px;height:16px;opacity:.95;animation:fall linear forwards}
+  @keyframes fall{to{transform:translateY(110vh) rotate(720deg);opacity:.9}}
+
+  /* short / landscape screens: keep the Spin button on-screen */
+  @media (max-height:560px){
+    .wrap{padding:8px 14px 18px}
+    h1{font-size:clamp(20px,5vw,30px)}
+    .sub{font-size:12px;margin:.2em 0 2px}
+    .stage{width:min(70vw,360px,58vh);margin-top:2px}
+    .spinBtn{margin-top:12px;padding:11px 30px}
+    .mascot{width:min(20vw,120px)}
+    .foot{display:none}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>La Rueda de los Pretextos</h1>
+    <p class="sub">🏋️ Gira para saber por qué HOY no toca gym 🛋️</p>
+
+    <div class="stage">
+      <div class="bulbs" id="bulbs"></div>
+      <div class="pointer"></div>
+      <div class="wheelBox" id="wheelBox">
+        <canvas id="wheel" width="640" height="640"></canvas>
+      </div>
+      <div class="hub" id="hub">🎯</div>
+    </div>
+
+    <button class="spinBtn" id="spin">¡Girar! 🎡</button>
+  </div>
+
+  <img class="mascot" src="assets/mascot.png" alt="">
+
+  <div class="overlay" id="overlay">
+    <div class="card">
+      <div class="tag">El veredicto es…</div>
+      <div class="excuse" id="excuseText">—</div>
+      <img class="stamp" src="assets/stamp.png" alt="NO GYM TODAY">
+      <div class="row">
+        <button class="copy" id="copyBtn">📋 Copiar</button>
+        <button class="again" id="againBtn">Otra vez 🔁</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="confetti" id="confetti"></div>
+  <div class="foot">Hecho con cariño y flojera • <a href="index.html">otra cosa</a></div>
+
+<script>
+const EXCUSES = [
+  "Ando malo del estómago",
+  "Tengo mucho trabajo",
+  "Traigo alergias",
+  "Me duele la cabeza",
+  "Sigo cansadón",
+  "Hoy no toca",
+  "Diosito me dijo que no",
+  "Mi mamá no me dio permiso",
+  "Se descompuso el carro"
+];
+const COLORS = ["#ff2e88","#7c3aed","#06b6d4","#22c55e","#f59e0b","#ef4444","#3b82f6","#ec4899","#14b8a6"];
+const TINY_LABEL = "¡HOY SÍ VOY!";
+const TINY_SIZE = 16; // degrees – the teeny "trap" wedge
+
+// Build wheel segments: the 9 excuses (equal slices) + 1 tiny wedge.
+const SEG = [];
+const BIG = (360 - TINY_SIZE) / EXCUSES.length;
+EXCUSES.forEach((e,i)=> SEG.push({label:e, size:BIG, real:i, color:COLORS[i%COLORS.length]}));
+SEG.push({label:TINY_LABEL, size:TINY_SIZE, real:null, color:"#fde047", tiny:true});
+let _acc=0;
+SEG.forEach(s=>{ s.start=_acc; s.center=_acc+s.size/2; _acc+=s.size; });
+const HOY_INDEX = SEG.length-1;
+
+const canvas = document.getElementById("wheel");
+const ctx = canvas.getContext("2d");
+const R = canvas.width/2;
+
+function wrap(ctx,text,maxw){
+  const words=text.split(" "); let line=""; const lines=[];
+  for(const w of words){
+    if(ctx.measureText(line+w).width>maxw && line){lines.push(line.trim());line=w+" ";}
+    else line+=w+" ";
+  }
+  lines.push(line.trim());
+  return lines;
+}
+
+function drawWheel(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  SEG.forEach(s=>{
+    const a0=(s.start-90)*Math.PI/180;
+    const a1=(s.start+s.size-90)*Math.PI/180;
+    ctx.beginPath();
+    ctx.moveTo(R,R);
+    ctx.arc(R,R,R-6,a0,a1);
+    ctx.closePath();
+    ctx.fillStyle=s.color;
+    ctx.fill();
+    ctx.strokeStyle="rgba(255,255,255,.85)"; ctx.lineWidth=4; ctx.stroke();
+    // label along the segment's center radius
+    ctx.save();
+    ctx.translate(R,R);
+    ctx.rotate((s.center-90)*Math.PI/180);
+    ctx.textAlign="right"; ctx.textBaseline="middle";
+    ctx.shadowColor="rgba(0,0,0,.45)"; ctx.shadowBlur=4; ctx.shadowOffsetY=1;
+    if(s.tiny){
+      ctx.fillStyle="#7c2d12";
+      ctx.font="900 15px Trebuchet MS, sans-serif";
+      ctx.fillText(s.label, R-14, 0);
+    } else {
+      ctx.fillStyle="#fff";
+      ctx.font="bold 27px Trebuchet MS, sans-serif";
+      const lines=wrap(ctx,s.label,R-95);
+      const lh=28; const st=-(lines.length-1)*lh/2;
+      lines.forEach((ln,k)=>ctx.fillText(ln,R-26,st+k*lh));
+    }
+    ctx.restore();
+  });
+}
+drawWheel();
+
+// bulbs around the ring
+(function(){
+  const ring=document.getElementById("bulbs"); const n=24;
+  for(let i=0;i<n;i++){
+    const b=document.createElement("div"); b.className="bulb";
+    const ang=(i/n)*Math.PI*2;
+    b.style.left=(50+48*Math.cos(ang))+"%";
+    b.style.top=(50+48*Math.sin(ang))+"%";
+    b.style.animationDelay=(i*0.05)+"s";
+    ring.appendChild(b);
+  }
+})();
+
+/* ---------- Sound (Web Audio, starts on first click) ---------- */
+let AC=null;
+function ac(){ if(!AC) AC=new (window.AudioContext||window.webkitAudioContext)(); return AC; }
+function tick(){
+  const c=ac(); const o=c.createOscillator(),g=c.createGain();
+  o.type="square"; o.frequency.value=900;
+  g.gain.setValueAtTime(.0001,c.currentTime);
+  g.gain.exponentialRampToValueAtTime(.18,c.currentTime+.005);
+  g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+.06);
+  o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime+.07);
+}
+function fanfare(){
+  const c=ac(); const notes=[523,659,784,1046,1318]; let t=c.currentTime;
+  notes.forEach((f,i)=>{
+    const o=c.createOscillator(),g=c.createGain();
+    o.type="triangle"; o.frequency.value=f;
+    const st=t+i*0.12;
+    g.gain.setValueAtTime(.0001,st);
+    g.gain.exponentialRampToValueAtTime(.25,st+.03);
+    g.gain.exponentialRampToValueAtTime(.0001,st+.5);
+    o.connect(g).connect(c.destination); o.start(st); o.stop(st+.55);
+  });
+}
+
+function tease(){
+  const c=ac(); const seq=[[330,0],[294,.16],[392,.36]];
+  seq.forEach(([f,dt])=>{
+    const o=c.createOscillator(),g=c.createGain();
+    o.type="sawtooth"; o.frequency.value=f;
+    const st=c.currentTime+dt;
+    g.gain.setValueAtTime(.0001,st);
+    g.gain.exponentialRampToValueAtTime(.2,st+.03);
+    g.gain.exponentialRampToValueAtTime(.0001,st+.22);
+    o.connect(g).connect(c.destination); o.start(st); o.stop(st+.26);
+  });
+}
+
+/* ---------- Spin logic ---------- */
+const wheelBox=document.getElementById("wheelBox");
+const spinBtn=document.getElementById("spin");
+const overlay=document.getElementById("overlay");
+// Today's default: the real result of the first spin is "Ando malo del estómago" (0), then random.
+let rotation=0, spinning=false, forced=0;
+const NREAL = EXCUSES.length;
+
+function tickWhileSpinning(){
+  let last=null;
+  function frame(){
+    if(!spinning){return;}
+    const st=getComputedStyle(wheelBox).transform;
+    if(st && st!=="none"){
+      const m=st.match(/matrix\(([^)]+)\)/);
+      if(m){const v=m[1].split(",");const a=Math.atan2(parseFloat(v[1]),parseFloat(v[0]));
+        const seg=Math.floor(((((a*180/Math.PI)%360)+360)%360)/18);
+        if(seg!==last){last=seg;tick();}}
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+// Rotate so segment `segIndex`'s centre stops under the top pointer.
+function alignTo(segIndex, turns){
+  const center=SEG[segIndex].center;
+  const desired=((-center)%360+360)%360;
+  const cur=((rotation%360)+360)%360;
+  let delta=360*turns + (((desired-cur)%360)+360)%360;
+  if(delta<360) delta+=360;
+  rotation+=delta;
+}
+
+// Nudge by the SHORTEST signed angle onto a segment (no full turns) — a little hop.
+function jumpTo(segIndex){
+  const center=SEG[segIndex].center;
+  const desired=((-center)%360+360)%360;
+  const cur=((rotation%360)+360)%360;
+  let delta=((desired-cur)%360+360)%360;
+  if(delta>180) delta-=360;
+  rotation+=delta;
+}
+
+function boing(){
+  const c=ac(); const o=c.createOscillator(),g=c.createGain();
+  o.type="sine";
+  o.frequency.setValueAtTime(170,c.currentTime);
+  o.frequency.exponentialRampToValueAtTime(560,c.currentTime+.1);
+  o.frequency.exponentialRampToValueAtTime(300,c.currentTime+.3);
+  g.gain.setValueAtTime(.0001,c.currentTime);
+  g.gain.exponentialRampToValueAtTime(.28,c.currentTime+.02);
+  g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+.4);
+  o.connect(g).connect(c.destination); o.start(); o.stop(c.currentTime+.42);
+}
+
+function spin(){
+  if(spinning) return;
+  ac(); // unlock audio
+  spinning=true; spinBtn.disabled=true;
+  const real=(forced!=null)? forced : Math.floor(Math.random()*NREAL);
+  forced=null;
+
+  // Stage 1: tease — slow down right onto the tiny "¡HOY SÍ VOY!" wedge.
+  wheelBox.style.transition="transform 4.2s cubic-bezier(.12,.62,.06,1)";
+  alignTo(HOY_INDEX, 4);
+  wheelBox.style.transform=`rotate(${rotation}deg)`;
+  tickWhileSpinning();
+
+  setTimeout(()=>{
+    tease();                 // suspense beat
+    document.getElementById("hub").textContent="❓";
+    // Stage 2: psych! a quick, silly little hop off the tiny wedge onto the real excuse.
+    setTimeout(()=>{
+      boing();
+      wheelBox.style.transition="transform .55s cubic-bezier(.34,1.45,.5,1)";
+      jumpTo(real);
+      wheelBox.style.transform=`rotate(${rotation}deg)`;
+      setTimeout(()=>{
+        spinning=false; spinBtn.disabled=false;
+        document.getElementById("hub").textContent="🎯";
+        showResult(real);
+      },650);
+    },650);
+  },4250);
+}
+
+function showResult(i){
+  document.getElementById("excuseText").textContent=EXCUSES[i];
+  overlay.classList.add("show");
+  fanfare(); burst();
+}
+
+spinBtn.addEventListener("click",spin);
+document.getElementById("againBtn").addEventListener("click",()=>{overlay.classList.remove("show");});
+document.getElementById("copyBtn").addEventListener("click",async()=>{
+  const txt=document.getElementById("excuseText").textContent;
+  try{await navigator.clipboard.writeText(txt+" 🙏 (hoy no hay gym)");
+    const b=document.getElementById("copyBtn");const o=b.textContent;b.textContent="✅ ¡Copiado!";setTimeout(()=>b.textContent=o,1400);
+  }catch(e){}
+});
+
+/* hidden force control: tap the center hub 3x quickly to pre-pick next result */
+let hubTaps=0,hubTimer=null;
+document.getElementById("hub").addEventListener("click",()=>{
+  hubTaps++; clearTimeout(hubTimer); hubTimer=setTimeout(()=>hubTaps=0,800);
+  if(hubTaps>=3){
+    hubTaps=0;
+    const inp=prompt("🤫 Forzar pretexto (0-"+(N-1)+"), vacío = aleatorio:\n"+EXCUSES.map((e,i)=>i+": "+e).join("\n"));
+    if(inp!==null && inp.trim()!==""){const v=parseInt(inp,10); if(v>=0&&v<N){forced=v;document.getElementById("hub").textContent="🔒";}}
+    else {forced=null;document.getElementById("hub").textContent="🎯";}
+  }
+});
+
+/* confetti burst */
+function burst(){
+  const box=document.getElementById("confetti");
+  const cols=["#ffd54a","#ff2e88","#22c55e","#06b6d4","#a78bfa","#ff9e00"];
+  for(let i=0;i<90;i++){
+    const p=document.createElement("i");
+    p.style.left=Math.random()*100+"vw";
+    p.style.background=cols[i%cols.length];
+    p.style.animationDuration=(2+Math.random()*2)+"s";
+    p.style.animationDelay=(Math.random()*.6)+"s";
+    p.style.transform=`rotate(${Math.random()*360}deg)`;
+    if(Math.random()<.5)p.style.borderRadius="50%";
+    box.appendChild(p);
+    setTimeout(()=>p.remove(),4200);
+  }
+}
+</script>
+</body>
+</html>
