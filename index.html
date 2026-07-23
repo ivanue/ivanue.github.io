@@ -92,6 +92,44 @@
   .device dd{margin:0; text-align:right; font-weight:600}
   .legend{display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--muted); margin-top:10px}
   .legend span{display:inline-flex; align-items:center; gap:6px}
+
+  /* View switcher */
+  .viewseg{margin-right:auto}
+
+  /* Labs */
+  .pill.low{background:rgba(56,189,248,.15); color:var(--accent)}
+  .pill.info{background:rgba(148,163,184,.15); color:var(--muted)}
+  .labs-head{display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:18px}
+  .labs-head h2{margin:0 0 4px; font-weight:650}
+  .labs-controls{display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin:0 0 18px}
+  .labs-controls input[type=text], .labs-controls select{
+    background:var(--card2); color:var(--text); border:1px solid var(--line);
+    padding:9px 13px; border-radius:10px; font-size:13px; font-family:inherit;
+  }
+  .labs-controls input[type=text]{min-width:200px}
+  .labs-controls input[type=text]:focus, .labs-controls select:focus{outline:none; border-color:var(--accent)}
+  .toggle{display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--muted); cursor:pointer; user-select:none}
+  .toggle input{width:16px; height:16px; accent-color:var(--accent); cursor:pointer}
+  .lab-panel{margin-bottom:16px}
+  .lab-panel h3{margin:0 0 2px; font-size:15px; font-weight:650}
+  .lab-panel .csub{margin:0 0 12px}
+  .lab-panel table{width:100%; border-collapse:collapse; font-size:13px}
+  .lab-panel th,.lab-panel td{text-align:left; padding:9px 10px; border-bottom:1px solid var(--line)}
+  .lab-panel th{color:var(--muted); font-weight:600; font-size:12px}
+  .lab-panel tbody tr:hover{background:var(--card2)}
+  .lab-panel td.val{text-align:right; font-variant-numeric:tabular-nums; font-weight:650}
+  .lab-panel td.ref{text-align:right; color:var(--muted); font-variant-numeric:tabular-nums}
+  .lab-panel td.st{text-align:right; white-space:nowrap}
+  .lab-abbr{color:var(--muted); font-size:11px; font-weight:600; margin-left:6px}
+  .val.bad{color:var(--bad)} .val.low{color:var(--accent)} .val.warn{color:var(--warn)}
+  .lab-empty{color:var(--muted); font-size:13px; padding:26px; text-align:center}
+
+  /* Body composition */
+  .bstats{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:2px 26px; margin:6px 0 0}
+  .bstat{display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:9px 0; border-bottom:1px solid var(--line); font-size:13.5px}
+  .bstat .k{color:var(--muted)}
+  .bstat .v{font-weight:650; font-variant-numeric:tabular-nums; text-align:right}
+  .bstat .v small{color:var(--muted); font-weight:600; font-size:11.5px; margin-left:3px}
   @media(max-width:860px){.charts,.split{grid-template-columns:1fr} header{flex-direction:column; align-items:stretch}}
   footer{color:var(--muted); font-size:12px; text-align:center; padding:22px}
 </style>
@@ -101,18 +139,27 @@
   <div class="brand">
     <div class="logo">🌙</div>
     <div>
-      <h1>CPAP Therapy Dashboard</h1>
-      <p id="subtitle">Open your <b>statistic.psstat</b> file to begin</p>
+      <h1 data-i18n="app_title">CPAP Therapy Dashboard</h1>
+      <p id="subtitle" data-i18n-html="subtitle_init">Open your <b>statistic.psstat</b> file to begin</p>
     </div>
   </div>
-  <div class="controls hidden" id="controls">
-    <div class="seg" id="range">
+  <div class="controls" id="controls">
+    <div class="seg viewseg" id="viewSwitch">
+      <button data-v="therapy" class="active" data-i18n="nav_therapy">🌙 Therapy</button>
+      <button data-v="labs" data-i18n="nav_labs">🧪 Labs</button>
+      <button data-v="body" data-i18n="nav_body">🧬 Body</button>
+    </div>
+    <div class="seg hidden" id="range">
       <button data-d="7">7d</button>
       <button data-d="30" class="active">30d</button>
       <button data-d="90">90d</button>
-      <button data-d="0">All</button>
+      <button data-d="0" data-i18n="range_all">All</button>
     </div>
-    <button class="btn" id="loadBtn">Open file</button>
+    <button class="btn hidden" id="loadBtn" data-i18n="open_file">Open file</button>
+    <div class="seg" id="langSwitch" title="Language / Idioma">
+      <button data-l="en" class="active">EN</button>
+      <button data-l="es">ES</button>
+    </div>
   </div>
   <input type="file" id="file" accept=".psstat,.pdat" class="hidden">
 </header>
@@ -120,9 +167,9 @@
 <main>
   <section id="drop">
     <div class="big">📂</div>
-    <h2>Drop your <code>statistic.psstat</code> here</h2>
-    <p>or click to browse. Your data never leaves this computer — everything is processed locally in your browser.</p>
-    <button class="btn primary" id="browseBtn">Choose file</button>
+    <h2 data-i18n-html="drop_title">Drop your <code>statistic.psstat</code> here</h2>
+    <p data-i18n="drop_sub">or click to browse. Your data never leaves this computer — everything is processed locally in your browser.</p>
+    <button class="btn primary" id="browseBtn" data-i18n="choose_file">Choose file</button>
   </section>
 
   <section id="dash" class="hidden">
@@ -130,33 +177,33 @@
 
     <div class="grid charts" style="margin-bottom:18px">
       <div class="card full">
-        <h3>Usage per night</h3>
-        <p class="csub">Hours of therapy each night. The dashed line marks the 4-hour compliance threshold.</p>
+        <h3 data-i18n="c_usage_t">Usage per night</h3>
+        <p class="csub" data-i18n="c_usage_s">Hours of therapy each night. The dashed line marks the 4-hour compliance threshold.</p>
         <div class="chart-wrap tall"><canvas id="cUsage"></canvas></div>
       </div>
       <div class="card full">
-        <h3>AHI — events per hour</h3>
-        <p class="csub">Apnea-Hypopnea Index, split into obstructive / central / RERA. Green ≤5 is the goal, amber ≤15.</p>
+        <h3 data-i18n="c_ahi_t">AHI — events per hour</h3>
+        <p class="csub" data-i18n="c_ahi_s">Apnea-Hypopnea Index, split into obstructive / central / RERA. Green ≤5 is the goal, amber ≤15.</p>
         <div class="chart-wrap tall"><canvas id="cAhi"></canvas></div>
         <div class="legend">
-          <span><span class="dot" style="background:#38bdf8"></span>Obstructive</span>
-          <span><span class="dot" style="background:#a78bfa"></span>Central</span>
-          <span><span class="dot" style="background:#f472b6"></span>RERA</span>
+          <span><span class="dot" style="background:#38bdf8"></span><span data-i18n="obstructive">Obstructive</span></span>
+          <span><span class="dot" style="background:#a78bfa"></span><span data-i18n="central">Central</span></span>
+          <span><span class="dot" style="background:#f472b6"></span><span data-i18n="rera">RERA</span></span>
         </div>
       </div>
       <div class="card">
-        <h3>Pressure</h3>
-        <p class="csub">Delivered pressure in hPa — median, P90 and P95.</p>
+        <h3 data-i18n="c_press_t">Pressure</h3>
+        <p class="csub" data-i18n="c_press_s">Delivered pressure in hPa — median, P90 and P95.</p>
         <div class="chart-wrap"><canvas id="cPress"></canvas></div>
       </div>
       <div class="card">
-        <h3>Leakage</h3>
-        <p class="csub">Share of the night spent in high mask leak.</p>
+        <h3 data-i18n="c_leak_t">Leakage</h3>
+        <p class="csub" data-i18n="c_leak_s">Share of the night spent in high mask leak.</p>
         <div class="chart-wrap"><canvas id="cLeak"></canvas></div>
       </div>
       <div class="card full">
-        <h3>Deep sleep indicator</h3>
-        <p class="csub">The device's deep-sleep estimate per night, in minutes (higher is better).</p>
+        <h3 data-i18n="c_deep_t">Deep sleep indicator</h3>
+        <p class="csub" data-i18n="c_deep_s">The device's deep-sleep estimate per night, in minutes (higher is better).</p>
         <div class="chart-wrap"><canvas id="cDeep"></canvas></div>
       </div>
     </div>
@@ -165,38 +212,300 @@
       <div class="card">
         <div style="display:flex;align-items:center;gap:10px">
           <div style="flex:1">
-            <h3>Recent nights</h3>
-            <p class="csub">Most recent first.</p>
+            <h3 data-i18n="recent_t">Recent nights</h3>
+            <p class="csub" data-i18n="recent_s">Most recent first.</p>
           </div>
-          <button class="btn" id="exportCsv">⬇ Export CSV</button>
+          <button class="btn" id="exportCsv" data-i18n="export_csv">⬇ Export CSV</button>
         </div>
         <div class="scroll">
           <table>
-            <thead><tr><th>Date</th><th class="tnum">Usage</th><th class="tnum">AHI</th><th class="tnum">Press.</th><th class="tnum">Leak</th><th class="tnum">Deep</th></tr></thead>
+            <thead><tr><th data-i18n="th_date">Date</th><th class="tnum" data-i18n="th_usage">Usage</th><th class="tnum" data-i18n="th_ahi">AHI</th><th class="tnum" data-i18n="th_press">Press.</th><th class="tnum" data-i18n="th_leak">Leak</th><th class="tnum" data-i18n="th_deep">Deep</th></tr></thead>
             <tbody id="tbody"></tbody>
           </table>
         </div>
       </div>
       <div style="display:grid; gap:16px; align-content:start">
         <div class="card device">
-          <h3>Device</h3>
-          <p class="csub">From the therapy file header.</p>
+          <h3 data-i18n="device_t">Device</h3>
+          <p class="csub" data-i18n="device_s">From the therapy file header.</p>
           <dl id="device"></dl>
         </div>
         <div class="card">
-          <h3>Nights by usage</h3>
-          <p class="csub">How long you wore the mask.</p>
+          <h3 data-i18n="dist_t">Nights by usage</h3>
+          <p class="csub" data-i18n="dist_s">How long you wore the mask.</p>
           <div class="chart-wrap" style="height:200px"><canvas id="cDist"></canvas></div>
         </div>
       </div>
     </div>
   </section>
+
+  <section id="labs" class="hidden">
+    <div class="labs-head">
+      <div>
+        <h2 data-i18n="labs_title">Laboratory results</h2>
+        <p class="csub" id="labMeta"></p>
+      </div>
+    </div>
+    <div class="grid kpis" id="labKpis"></div>
+    <div class="labs-controls">
+      <input type="text" id="labSearch" data-i18n-ph="lab_search" placeholder="🔍 Search test…" autocomplete="off">
+      <select id="labPanel"></select>
+      <label class="toggle"><input type="checkbox" id="labOutOnly"> <span data-i18n="out_only">Out of range only</span></label>
+    </div>
+    <div id="labPanels"></div>
+  </section>
+
+  <section id="body" class="hidden">
+    <div class="labs-head">
+      <div>
+        <h2 data-i18n="body_title">Body composition</h2>
+        <p class="csub" id="bodyMeta"></p>
+      </div>
+    </div>
+    <div class="grid kpis" id="bodyKpis"></div>
+
+    <div class="grid charts" style="margin-bottom:18px">
+      <div class="card full">
+        <h3 data-i18n="bc_trend_t">Fat vs muscle trend</h3>
+        <p class="csub" data-i18n="bc_trend_s">Fat mass and skeletal muscle mass over time (kg).</p>
+        <div class="chart-wrap tall"><canvas id="cBcTrend"></canvas></div>
+        <div class="legend">
+          <span><span class="dot" style="background:#f59e0b"></span><span data-i18n="bc_fat_lbl">Fat</span></span>
+          <span><span class="dot" style="background:#22c55e"></span><span data-i18n="bc_musc_lbl">Skeletal muscle</span></span>
+        </div>
+      </div>
+      <div class="card">
+        <h3 data-i18n="bc_comp_t">Composition</h3>
+        <p class="csub" data-i18n="bc_comp_s">How your body weight divides up.</p>
+        <div class="chart-wrap"><canvas id="cBcComp"></canvas></div>
+      </div>
+      <div class="card">
+        <h3 data-i18n="bc_pha_t">Phase angle</h3>
+        <p class="csub" data-i18n="bc_pha_cs">Cellular-health marker derived from bioimpedance. Higher is better.</p>
+        <div class="chart-wrap"><canvas id="cBcPha"></canvas></div>
+      </div>
+      <div class="card full">
+        <h3 data-i18n="bc_seg_t">Segmental muscle mass</h3>
+        <p class="csub" data-i18n="bc_seg_s">Muscle per body region vs your typical reference.</p>
+        <div class="chart-wrap tall"><canvas id="cBcSeg"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 data-i18n="bc_details_t">Water, energy &amp; indices</h3>
+      <p class="csub" data-i18n="bc_details_s">From the seca analysis.</p>
+      <div class="bstats" id="bodyDetails"></div>
+    </div>
+  </section>
 </main>
 
-<footer>Built from the prisma JOURNAL data format · All processing happens locally in your browser.</footer>
+<footer data-i18n="footer">Built from the prisma JOURNAL data format · All processing happens locally in your browser.</footer>
 
 <script>
 "use strict";
+
+// ---------- Internationalization ----------
+let LANG = (localStorage.getItem("lang") || (navigator.language||"en").slice(0,2)) === "es" ? "es" : "en";
+const ES = () => LANG === "es";
+const I18N = {
+  en:{
+    app_title:"CPAP Therapy Dashboard",
+    subtitle_init:"Open your <b>statistic.psstat</b> file to begin",
+    nav_therapy:"🌙 Therapy", nav_labs:"🧪 Labs",
+    range_all:"All", open_file:"Open file",
+    drop_title:"Drop your <code>statistic.psstat</code> here",
+    drop_sub:"or click to browse. Your data never leaves this computer — everything is processed locally in your browser.",
+    choose_file:"Choose file",
+    c_usage_t:"Usage per night",
+    c_usage_s:"Hours of therapy each night. The dashed line marks the 4-hour compliance threshold.",
+    c_ahi_t:"AHI — events per hour",
+    c_ahi_s:"Apnea-Hypopnea Index, split into obstructive / central / RERA. Green ≤5 is the goal, amber ≤15.",
+    obstructive:"Obstructive", central:"Central", rera:"RERA",
+    c_press_t:"Pressure", c_press_s:"Delivered pressure in hPa — median, P90 and P95.",
+    c_leak_t:"Leakage", c_leak_s:"Share of the night spent in high mask leak.",
+    c_deep_t:"Deep sleep indicator", c_deep_s:"The device's deep-sleep estimate per night, in minutes (higher is better).",
+    recent_t:"Recent nights", recent_s:"Most recent first.", export_csv:"⬇ Export CSV",
+    th_date:"Date", th_usage:"Usage", th_ahi:"AHI", th_press:"Press.", th_leak:"Leak", th_deep:"Deep",
+    device_t:"Device", device_s:"From the therapy file header.",
+    dist_t:"Nights by usage", dist_s:"How long you wore the mask.",
+    labs_title:"Laboratory results", lab_search:"🔍 Search test…", out_only:"Out of range only",
+    footer:"Built from the prisma JOURNAL data format · All processing happens locally in your browser.",
+    // KPIs
+    kpi_usage:"Avg usage", kpi_ahi:"Avg AHI", kpi_press:"Pressure P90", kpi_leak:"Leakage",
+    kpi_deep:"Deep sleep", kpi_comp:"Compliance",
+    good:"Good", fair:"Fair", poor:"Poor",
+    sub_nights_data:n=>`${n} nights with data`,
+    ahi_ontarget:"On target (≤5)", ahi_mild:"Mild (5–15)", ahi_high:"High (>15)",
+    sub_p90:"90th percentile",
+    leak_good:"Good seal", leak_watch:"Watch the mask", leak_high:"High leak",
+    sub_deepind:"Device deep-sleep indicator",
+    sub_comp:(c,n)=>`${c}/${n} nights ≥4h`,
+    // device labels
+    dl_device:"Device", dl_fw:"Firmware", dl_mode:"Mode", dl_press:"Pressure",
+    dl_life:"Lifetime use", dl_nights:"Total nights",
+    unit_h:" h", unit_ahi:" /h", unit_hpa:" hPa", unit_min:" min", unit_pct:" %",
+    dist_labels:["No use","<3h","3–4h","4–5h","5–6h","6h+"],
+    press_p95:"P95", press_p90:"P90", press_median:"Median",
+    no_usage:"no usage",
+    subtitle_loaded:(n,r,u)=>`${n} nights loaded · showing ${r} (${u} with therapy)`,
+    // labs
+    lab_tests:"Tests", lab_inrange:"In range", lab_outrange:"Out of range", lab_border:"Borderline",
+    lab_panels:n=>`${n} panels`, lab_within:"within reference", lab_outside:"outside reference", lab_atlimit:"at limit",
+    lab_collected:(d,t)=>`Collected ${d} · ${t}`,
+    lab_allpanels:"All panels",
+    th_test:"Test", th_value:"Value", th_reference:"Reference", th_status:"Status",
+    lab_empty:"No results match the current filters.",
+    fl_normal:"Normal", fl_high:"High ▲", fl_low:"Low ▼", fl_upper:"Upper limit", fl_abnormal:"Abnormal", fl_note:"Note",
+    no_days:"No therapy days found in this file.",
+    read_fail:"Could not read this file.\nPlease pick a valid statistic.psstat file.\n\n",
+    read_unable:"Unable to read the file.",
+    // body composition
+    nav_body:"🧬 Body",
+    body_title:"Body composition",
+    body_meta:d=>`Measured ${d} · seca mBCA bioimpedance`,
+    bc_weight:"Weight", bc_bmi:"BMI", bc_fat:"Body fat", bc_muscle:"Skeletal muscle",
+    bc_vat:"Visceral fat", bc_pha:"Phase angle",
+    bmi_obese:"Obese", fat_high:"High", vat_high:"High", pha_exc:"Excellent",
+    bc_weight_sub:h=>`height ${h} cm`,
+    bc_bmi_sub:"class III obesity",
+    bc_fat_sub:kg=>`${kg} kg fat mass`,
+    bc_muscle_sub:(pct,perc)=>`${pct}% of weight · ${perc}th age pct`,
+    bc_vat_sub:w=>`waist ${w} cm`,
+    bc_pha_sub:">99th percentile",
+    bc_trend_t:"Fat vs muscle trend",
+    bc_trend_s:"Fat mass and skeletal muscle mass over time (kg).",
+    bc_comp_t:"Composition", bc_comp_s:"How your body weight divides up.",
+    bc_pha_t:"Phase angle", bc_pha_cs:"Cellular-health marker derived from bioimpedance. Higher is better.",
+    bc_seg_t:"Segmental muscle mass", bc_seg_s:"Muscle per body region vs your typical reference.",
+    bc_details_t:"Water, energy & indices", bc_details_s:"From the seca analysis.",
+    bc_fat_lbl:"Fat", bc_musc_lbl:"Skeletal muscle", bc_other_lbl:"Other lean",
+    bc_you:"You", bc_ref:"Typical",
+    bc_seg_range:(lo,hi)=>`typical ${lo}–${hi} kg`,
+    seg_torso:"Torso", seg_arm_l:"Left arm", seg_arm_r:"Right arm", seg_leg_l:"Left leg", seg_leg_r:"Right leg",
+    d_tbw:"Total body water", d_ecw:"Extracellular water", d_ecwtbw:"ECW/TBW ratio",
+    d_ree:"Resting energy (REE)", d_tee:"Total energy (TEE)", d_pal:"Activity level (PAL)",
+    d_ffmi:"Fat-free mass index", d_smi:"Skeletal muscle index", d_asmi:"Appendicular SMI (DXA-eq.)",
+    d_waist:"Waist circumference", d_score:"TRU Body Score"
+  },
+  es:{
+    app_title:"Panel de terapia CPAP",
+    subtitle_init:"Abre tu archivo <b>statistic.psstat</b> para comenzar",
+    nav_therapy:"🌙 Terapia", nav_labs:"🧪 Laboratorio",
+    range_all:"Todo", open_file:"Abrir archivo",
+    drop_title:"Suelta tu <code>statistic.psstat</code> aquí",
+    drop_sub:"o haz clic para buscar. Tus datos nunca salen de esta computadora — todo se procesa localmente en tu navegador.",
+    choose_file:"Elegir archivo",
+    c_usage_t:"Uso por noche",
+    c_usage_s:"Horas de terapia cada noche. La línea punteada marca el umbral de cumplimiento de 4 horas.",
+    c_ahi_t:"IAH — eventos por hora",
+    c_ahi_s:"Índice de apnea-hipopnea, dividido en obstructiva / central / RERA. Verde ≤5 es la meta, ámbar ≤15.",
+    obstructive:"Obstructiva", central:"Central", rera:"RERA",
+    c_press_t:"Presión", c_press_s:"Presión administrada en hPa — mediana, P90 y P95.",
+    c_leak_t:"Fuga", c_leak_s:"Porción de la noche con fuga alta de la mascarilla.",
+    c_deep_t:"Indicador de sueño profundo", c_deep_s:"Estimación de sueño profundo del dispositivo por noche, en minutos (más es mejor).",
+    recent_t:"Noches recientes", recent_s:"Más recientes primero.", export_csv:"⬇ Exportar CSV",
+    th_date:"Fecha", th_usage:"Uso", th_ahi:"IAH", th_press:"Pres.", th_leak:"Fuga", th_deep:"Prof.",
+    device_t:"Dispositivo", device_s:"Del encabezado del archivo de terapia.",
+    dist_t:"Noches por uso", dist_s:"Cuánto tiempo usaste la mascarilla.",
+    labs_title:"Resultados de laboratorio", lab_search:"🔍 Buscar prueba…", out_only:"Solo fuera de rango",
+    footer:"Construido a partir del formato de datos prisma JOURNAL · Todo el procesamiento ocurre localmente en tu navegador.",
+    kpi_usage:"Uso promedio", kpi_ahi:"IAH promedio", kpi_press:"Presión P90", kpi_leak:"Fuga",
+    kpi_deep:"Sueño profundo", kpi_comp:"Cumplimiento",
+    good:"Bien", fair:"Regular", poor:"Bajo",
+    sub_nights_data:n=>`${n} noches con datos`,
+    ahi_ontarget:"En meta (≤5)", ahi_mild:"Leve (5–15)", ahi_high:"Alto (>15)",
+    sub_p90:"percentil 90",
+    leak_good:"Buen sellado", leak_watch:"Vigila la mascarilla", leak_high:"Fuga alta",
+    sub_deepind:"Indicador de sueño profundo del dispositivo",
+    sub_comp:(c,n)=>`${c}/${n} noches ≥4h`,
+    dl_device:"Dispositivo", dl_fw:"Firmware", dl_mode:"Modo", dl_press:"Presión",
+    dl_life:"Uso total", dl_nights:"Noches totales",
+    unit_h:" h", unit_ahi:" /h", unit_hpa:" hPa", unit_min:" min", unit_pct:" %",
+    dist_labels:["Sin uso","<3h","3–4h","4–5h","5–6h","6h+"],
+    press_p95:"P95", press_p90:"P90", press_median:"Mediana",
+    no_usage:"sin uso",
+    subtitle_loaded:(n,r,u)=>`${n} noches cargadas · mostrando ${r} (${u} con terapia)`,
+    lab_tests:"Pruebas", lab_inrange:"En rango", lab_outrange:"Fuera de rango", lab_border:"En el límite",
+    lab_panels:n=>`${n} paneles`, lab_within:"dentro de referencia", lab_outside:"fuera de referencia", lab_atlimit:"en el límite",
+    lab_collected:(d,t)=>`Tomado ${d} · ${t}`,
+    lab_allpanels:"Todos los paneles",
+    th_test:"Prueba", th_value:"Valor", th_reference:"Referencia", th_status:"Estado",
+    lab_empty:"Ningún resultado coincide con los filtros actuales.",
+    fl_normal:"Normal", fl_high:"Alto ▲", fl_low:"Bajo ▼", fl_upper:"Límite superior", fl_abnormal:"Anormal", fl_note:"Nota",
+    no_days:"No se encontraron días de terapia en este archivo.",
+    read_fail:"No se pudo leer este archivo.\nElige un archivo statistic.psstat válido.\n\n",
+    read_unable:"No se pudo leer el archivo.",
+    // body composition
+    nav_body:"🧬 Cuerpo",
+    body_title:"Composición corporal",
+    body_meta:d=>`Medido ${d} · bioimpedancia seca mBCA`,
+    bc_weight:"Peso", bc_bmi:"IMC", bc_fat:"Grasa corporal", bc_muscle:"Músculo esquelético",
+    bc_vat:"Grasa visceral", bc_pha:"Ángulo de fase",
+    bmi_obese:"Obesidad", fat_high:"Alta", vat_high:"Alta", pha_exc:"Excelente",
+    bc_weight_sub:h=>`estatura ${h} cm`,
+    bc_bmi_sub:"obesidad clase III",
+    bc_fat_sub:kg=>`${kg} kg de masa grasa`,
+    bc_muscle_sub:(pct,perc)=>`${pct}% del peso · pct ${perc} por edad`,
+    bc_vat_sub:w=>`cintura ${w} cm`,
+    bc_pha_sub:">percentil 99",
+    bc_trend_t:"Tendencia grasa vs músculo",
+    bc_trend_s:"Masa grasa y masa muscular esquelética a lo largo del tiempo (kg).",
+    bc_comp_t:"Composición", bc_comp_s:"Cómo se reparte tu peso corporal.",
+    bc_pha_t:"Ángulo de fase", bc_pha_cs:"Marcador de salud celular derivado de la bioimpedancia. Más alto es mejor.",
+    bc_seg_t:"Masa muscular segmental", bc_seg_s:"Músculo por región corporal vs tu referencia típica.",
+    bc_details_t:"Agua, energía e índices", bc_details_s:"Del análisis seca.",
+    bc_fat_lbl:"Grasa", bc_musc_lbl:"Músculo esquelético", bc_other_lbl:"Otra masa magra",
+    bc_you:"Tú", bc_ref:"Típico",
+    bc_seg_range:(lo,hi)=>`típico ${lo}–${hi} kg`,
+    seg_torso:"Torso", seg_arm_l:"Brazo izquierdo", seg_arm_r:"Brazo derecho", seg_leg_l:"Pierna izquierda", seg_leg_r:"Pierna derecha",
+    d_tbw:"Agua corporal total", d_ecw:"Agua extracelular", d_ecwtbw:"Relación ECW/TBW",
+    d_ree:"Energía en reposo (REE)", d_tee:"Energía total (TEE)", d_pal:"Nivel de actividad (PAL)",
+    d_ffmi:"Índice de masa magra", d_smi:"Índice de músculo esq.", d_asmi:"IME apendicular (DXA-eq.)",
+    d_waist:"Circunferencia de cintura", d_score:"TRU Body Score"
+  }
+};
+function t(key){ const v=(I18N[LANG]&&I18N[LANG][key]); return v!==undefined?v:I18N.en[key]; }
+function locale(){ return ES()?"es":undefined; }
+
+// Qualitative lab value/reference translations (EN → ES)
+const VAL_ES={
+  "negative":"negativo", "scarce":"escaso", "moderate":"moderado",
+  "medium yellow":"amarillo medio", "light yellow":"amarillo claro",
+  "slightly cloudy":"ligeramente turbio", "clear":"claro",
+  "scarce calcium oxalate":"oxalato de calcio escaso"
+};
+function trVal(s){ return (ES()&&typeof s==="string"&&VAL_ES[s])?VAL_ES[s]:s; }
+const PANEL_ES={
+  "Chemistry / lipids (SMAC)":"Química / lípidos (SMAC)",
+  "Complete blood count":"Biometría hemática completa",
+  "Urinalysis":"Examen general de orina",
+  "Vitamin D":"Vitamina D"
+};
+const SPECIMEN_ES={"serum":"suero","whole blood EDTA":"sangre total EDTA","urine":"orina"};
+const METHOD_ES={
+  "automated photometry":"fotometría automatizada",
+  "laser flow cytometry (MAPSS)":"citometría de flujo láser (MAPSS)",
+  "macro/microscopy, reflectance photometry":"macro/microscopía, fotometría de reflectancia",
+  "chemiluminescence":"quimioluminiscencia"
+};
+
+function applyStaticLang(){
+  document.querySelectorAll("[data-i18n]").forEach(el=>{ el.textContent=t(el.dataset.i18n); });
+  document.querySelectorAll("[data-i18n-html]").forEach(el=>{ el.innerHTML=t(el.dataset.i18nHtml); });
+  document.querySelectorAll("[data-i18n-ph]").forEach(el=>{ el.placeholder=t(el.dataset.i18nPh); });
+  document.documentElement.lang=LANG;
+}
+function setLang(l){
+  LANG=(l==="es")?"es":"en";
+  localStorage.setItem("lang",LANG);
+  document.querySelectorAll("#langSwitch button").forEach(b=>b.classList.toggle("active", b.dataset.l===LANG));
+  applyStaticLang();
+  if(DATA) render();                       // refresh subtitle + dynamic therapy content
+  else document.getElementById("subtitle").innerHTML=t("subtitle_init");
+  const sel=document.getElementById("labPanel"); if(sel) sel.dataset.built="";  // force rebuild of options
+  if(currentView==="labs") renderLabs();
+  if(currentView==="body") renderBody();
+}
 
 // ---------- Parsing (faithful to the original prisma JOURNAL logic) ----------
 function toDateTime(sec){ const d=new Date(1970,0,1); d.setSeconds(sec); return d; }
@@ -316,17 +625,17 @@ function renderKpis(rows){
   const useH=avgUse/60;
 
   const cards=[
-    {label:"Avg usage", icon:"⏱️", value:fmtH(avgUse), unit:" h", sub:`${used.length} nights with data`, cls:usageClass(useH)},
-    {label:"Avg AHI", icon:"💨", value:avgAhi.toFixed(1), unit:" /h", sub:avgAhi<=5?"On target (≤5)":avgAhi<=15?"Mild (5–15)":"High (>15)", cls:ahiClass(avgAhi)},
-    {label:"Pressure P90", icon:"🎚️", value:avgPress?avgPress.toFixed(1):"—", unit:" hPa", sub:"90th percentile", cls:""},
-    {label:"Leakage", icon:"🌬️", value:Math.round(avgLeak), unit:" %", sub:avgLeak<=10?"Good seal":avgLeak<=30?"Watch the mask":"High leak", cls:leakClass(avgLeak)},
-    {label:"Deep sleep", icon:"😴", value:Math.round(avgDeep), unit:" min", sub:"Device deep-sleep indicator", cls:""},
-    {label:"Compliance", icon:"✅", value:compPct, unit:" %", sub:`${compliant}/${rows.length} nights ≥4h`, cls:compPct>=70?"good":compPct>=40?"warn":"bad"},
+    {label:t("kpi_usage"), icon:"⏱️", value:fmtH(avgUse), unit:t("unit_h"), sub:t("sub_nights_data")(used.length), cls:usageClass(useH)},
+    {label:t("kpi_ahi"), icon:"💨", value:avgAhi.toFixed(1), unit:t("unit_ahi"), sub:avgAhi<=5?t("ahi_ontarget"):avgAhi<=15?t("ahi_mild"):t("ahi_high"), cls:ahiClass(avgAhi)},
+    {label:t("kpi_press"), icon:"🎚️", value:avgPress?avgPress.toFixed(1):"—", unit:t("unit_hpa"), sub:t("sub_p90"), cls:""},
+    {label:t("kpi_leak"), icon:"🌬️", value:Math.round(avgLeak), unit:t("unit_pct"), sub:avgLeak<=10?t("leak_good"):avgLeak<=30?t("leak_watch"):t("leak_high"), cls:leakClass(avgLeak)},
+    {label:t("kpi_deep"), icon:"😴", value:Math.round(avgDeep), unit:t("unit_min"), sub:t("sub_deepind"), cls:""},
+    {label:t("kpi_comp"), icon:"✅", value:compPct, unit:t("unit_pct"), sub:t("sub_comp")(compliant,rows.length), cls:compPct>=70?"good":compPct>=40?"warn":"bad"},
   ];
   document.getElementById("kpis").innerHTML=cards.map(c=>`
     <div class="card kpi">
       <div class="label">${c.icon} ${c.label}
-        ${c.cls?`<span class="pill ${c.cls}" style="margin-left:auto">${c.cls==="good"?"Good":c.cls==="warn"?"Fair":"Poor"}</span>`:""}
+        ${c.cls?`<span class="pill ${c.cls}" style="margin-left:auto">${c.cls==="good"?t("good"):c.cls==="warn"?t("fair"):t("poor")}</span>`:""}
       </div>
       <div class="value">${c.value}<small>${c.unit}</small></div>
       <div class="sub">${c.sub}</div>
@@ -346,7 +655,7 @@ function baseOpts(extra={}){
     }
   },extra);
 }
-function labelsOf(rows){return rows.map(r=>r.date.toLocaleDateString(undefined,{month:"short",day:"numeric"}));}
+function labelsOf(rows){return rows.map(r=>r.date.toLocaleDateString(locale(),{month:"short",day:"numeric"}));}
 function destroy(){Object.values(CH).forEach(c=>c&&c.destroy());}
 
 // Build an inline plugin that draws one or more dashed horizontal threshold lines.
@@ -396,9 +705,9 @@ function renderCharts(rows){
   // Pressure — median (P50), P90 and P95
   CH.p=new Chart(cPress,{type:"line",
     data:{labels:L,datasets:[
-      {label:"P95",data:rows.map(r=>r.pMax),borderColor:"#a78bfa",borderWidth:1.4,borderDash:[4,3],tension:.3,pointRadius:0,spanGaps:true,fill:false},
-      {label:"P90",data:rows.map(r=>r.pressure),borderColor:"#38bdf8",backgroundColor:"rgba(56,189,248,.12)",fill:true,tension:.3,pointRadius:0,spanGaps:true,borderWidth:2},
-      {label:"Median",data:rows.map(r=>r.pMedian),borderColor:"#22c55e",borderWidth:1.4,tension:.3,pointRadius:0,spanGaps:true,fill:false},
+      {label:t("press_p95"),data:rows.map(r=>r.pMax),borderColor:"#a78bfa",borderWidth:1.4,borderDash:[4,3],tension:.3,pointRadius:0,spanGaps:true,fill:false},
+      {label:t("press_p90"),data:rows.map(r=>r.pressure),borderColor:"#38bdf8",backgroundColor:"rgba(56,189,248,.12)",fill:true,tension:.3,pointRadius:0,spanGaps:true,borderWidth:2},
+      {label:t("press_median"),data:rows.map(r=>r.pMedian),borderColor:"#22c55e",borderWidth:1.4,tension:.3,pointRadius:0,spanGaps:true,fill:false},
     ]},
     options:baseOpts({plugins:{legend:{display:true,labels:{color:TICK,boxWidth:12,font:{size:11}}},
       tooltip:{backgroundColor:"#0b1220",borderColor:"#334155",borderWidth:1,padding:10,callbacks:{label:c=>" "+c.dataset.label+": "+(c.parsed.y==null?"—":c.parsed.y.toFixed(1)+" hPa")}}},
@@ -429,7 +738,7 @@ function renderCharts(rows){
     else if(m<=300) b[3]++; else if(m<=360) b[4]++; else b[5]++;
   }
   CH.d=new Chart(cDist,{type:"doughnut",
-    data:{labels:["No use","<3h","3–4h","4–5h","5–6h","6h+"],
+    data:{labels:t("dist_labels"),
       datasets:[{data:b,backgroundColor:["#475569","#ef4444","#f59e0b","#84cc16","#22c55e","#10b981"],borderWidth:0}]},
     options:{responsive:true,maintainAspectRatio:false,cutout:"62%",
       plugins:{legend:{position:"right",labels:{color:TICK,boxWidth:12,font:{size:11}}}}}});
@@ -439,10 +748,10 @@ function renderCharts(rows){
 function renderTable(rows){
   const tb=document.getElementById("tbody");
   tb.innerHTML=rows.slice().reverse().map(r=>{
-    if(r.usage<3) return `<tr><td>${r.date.toLocaleDateString()}</td><td class="tnum" colspan="5" style="color:var(--muted)">no usage</td></tr>`;
+    if(r.usage<3) return `<tr><td>${r.date.toLocaleDateString(locale())}</td><td class="tnum" colspan="5" style="color:var(--muted)">${t("no_usage")}</td></tr>`;
     const ac=ahiClass(r.ahi),lc=leakClass(r.leak);
     return `<tr>
-      <td>${r.date.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})}</td>
+      <td>${r.date.toLocaleDateString(locale(),{weekday:"short",month:"short",day:"numeric"})}</td>
       <td class="tnum">${fmtH(r.usage)}</td>
       <td class="tnum" style="color:var(--${ac==='good'?'good':ac==='warn'?'warn':'bad'})">${r.ahi.toFixed(1)}</td>
       <td class="tnum">${r.pressure!=null?r.pressure.toFixed(1):"—"}</td>
@@ -454,10 +763,10 @@ function renderTable(rows){
 function renderDevice(){
   const d=DATA.dev||{};
   const rows=[
-    ["Device",d.name||"—"],["Firmware",d.fw||"—"],["Mode",d.mode||"—"],
-    ["Pressure",(d.pmin!=null?`${d.pmin}–${d.pmax} hPa`:"—")],
-    ["Lifetime use",(d.lifeHours!=null?`${d.lifeHours.toLocaleString()} h`:"—")],
-    ["Total nights",DATA.days.length]
+    [t("dl_device"),d.name||"—"],[t("dl_fw"),d.fw||"—"],[t("dl_mode"),d.mode||"—"],
+    [t("dl_press"),(d.pmin!=null?`${d.pmin}–${d.pmax} hPa`:"—")],
+    [t("dl_life"),(d.lifeHours!=null?`${d.lifeHours.toLocaleString(locale())} h`:"—")],
+    [t("dl_nights"),DATA.days.length]
   ];
   document.getElementById("device").innerHTML=rows.map(r=>`<dt>${r[0]}</dt><dd>${r[1]}</dd>`).join("");
 }
@@ -497,28 +806,373 @@ function render(){
   renderKpis(rows); renderCharts(rows); renderTable(rows); renderDevice();
   const used=rows.filter(r=>r.usage>=3).length;
   document.getElementById("subtitle").textContent=
-    `${DATA.days.length} nights loaded · showing ${rows.length} (${used} with therapy)`;
+    t("subtitle_loaded")(DATA.days.length,rows.length,used);
 }
 
 function loadText(text,name){
   try{
     DATA=parsePsstat(text);
-    if(!DATA.days.length){alert("No therapy days found in this file.");return;}
+    if(!DATA.days.length){alert(t("no_days"));return;}
     document.getElementById("drop").classList.add("hidden");
     document.getElementById("dash").classList.remove("hidden");
-    document.getElementById("controls").classList.remove("hidden");
+    document.getElementById("range").classList.remove("hidden");
+    document.getElementById("loadBtn").classList.remove("hidden");
     render();
   }catch(e){
     console.error(e);
-    alert("Could not read this file.\nPlease pick a valid statistic.psstat file.\n\n"+e.message);
+    alert(t("read_fail")+e.message);
   }
 }
 function handleFile(f){
   if(!f) return;
   const r=new FileReader();
   r.onload=e=>loadText(e.target.result,f.name);
-  r.onerror=()=>alert("Unable to read the file.");
+  r.onerror=()=>alert(t("read_unable"));
   r.readAsText(f);
+}
+
+// ---------- Labs ----------
+const LABS={
+  collectionDate:"2026-07-01",
+  collectionTime:"06:38",
+  panels:[
+    {name:"Chemistry / lipids (SMAC)", specimen:"serum", method:"automated photometry", results:[
+      {test:"Glucose", test_es:"Glucosa", value:78.0, unit:"mg/dL", reference:"74.0–100.0", flag:"normal"},
+      {test:"Urea", test_es:"Urea", value:30.0, unit:"mg/dL", reference:"19.0–44.0", flag:"normal"},
+      {test:"Blood urea nitrogen", test_es:"Nitrógeno ureico", abbr:"BUN", value:14.0, unit:"mg/dL", reference:"8.9–20.6", flag:"normal"},
+      {test:"Creatinine", test_es:"Creatinina", value:1.06, unit:"mg/dL", reference:"0.6–1.2", flag:"normal"},
+      {test:"BUN/creatinine ratio", test_es:"Relación BUN/creatinina", value:13.2, unit:"UE", reference:"7.0–25.0", flag:"normal"},
+      {test:"Uric acid", test_es:"Ácido úrico", value:5.5, unit:"mg/dL", reference:"3.7–7.7", flag:"normal"},
+      {test:"Sodium", test_es:"Sodio", value:139.0, unit:"mmol/L", reference:"136.0–145.0", flag:"normal"},
+      {test:"Potassium", test_es:"Potasio", value:3.8, unit:"mmol/L", reference:"3.5–5.1", flag:"normal"},
+      {test:"Chloride", test_es:"Cloro", value:103.0, unit:"mmol/L", reference:"98.0–107.0", flag:"normal"},
+      {test:"Total CO2", test_es:"CO2 total", value:24.0, unit:"mmol/L", reference:"22.0–29.0", flag:"normal"},
+      {test:"Calcium", test_es:"Calcio", value:9.4, unit:"mg/dL", reference:"8.4–10.2", flag:"normal"},
+      {test:"Phosphorus", test_es:"Fósforo", value:3.8, unit:"mg/dL", reference:"2.5–4.5", flag:"normal"},
+      {test:"Total proteins", test_es:"Proteínas totales", value:7.0, unit:"g/dL", reference:"6.3–8.2", flag:"normal"},
+      {test:"Serum albumin", test_es:"Albúmina sérica", value:4.5, unit:"g/dL", reference:"3.5–5.0", flag:"normal"},
+      {test:"Globulins", test_es:"Globulinas", value:2.5, unit:"g/dL", reference:"2.4–3.5", flag:"normal"},
+      {test:"Albumin/globulin ratio", test_es:"Relación albúmina/globulina", value:1.8, unit:"UE", reference:"1.1–2.2", flag:"normal"},
+      {test:"Aspartate aminotransferase", test_es:"Transaminasa oxalacética (TGO)", abbr:"AST/TGO", value:25.0, unit:"U/L", reference:"5.0–34.0", flag:"normal"},
+      {test:"Alanine aminotransferase", test_es:"Transaminasa pirúvica (TGP)", abbr:"ALT/TGP", value:37.0, unit:"U/L", reference:"0.0–55.0", flag:"normal"},
+      {test:"Lactate dehydrogenase", test_es:"Lactato deshidrogenasa", abbr:"LDH", value:142.0, unit:"U/L", reference:"125.0–220.0", flag:"normal"},
+      {test:"Alkaline phosphatase", test_es:"Fosfatasa alcalina", value:79.0, unit:"U/L", reference:"50.0–116.0", flag:"normal"},
+      {test:"Gamma-glutamyl transferase", test_es:"Gamma glutamil transferasa", abbr:"GGT", value:31.0, unit:"U/L", reference:"12.0–64.0", flag:"normal"},
+      {test:"Total bilirubin", test_es:"Bilirrubina total", value:0.7, unit:"mg/dL", reference:"0.2–1.2", flag:"normal"},
+      {test:"Direct bilirubin", test_es:"Bilirrubina directa", value:0.2, unit:"mg/dL", reference:"0.0–0.5", flag:"normal"},
+      {test:"Indirect bilirubin", test_es:"Bilirrubina indirecta", value:0.5, unit:"mg/dL", reference:"0.2–1.0", flag:"normal"},
+      {test:"Total cholesterol", test_es:"Colesterol", value:172.0, unit:"mg/dL", reference:"<200.0", flag:"normal"},
+      {test:"Triglycerides", test_es:"Triglicéridos", value:183.0, unit:"mg/dL", reference:"52.0–150.0", flag:"high"},
+      {test:"High-density lipoprotein", test_es:"Lipoproteína de alta densidad", abbr:"HDL-C", value:38.0, unit:"mg/dL", reference:"40.0–60.0", flag:"low"},
+      {test:"Very-low-density lipoprotein", test_es:"Lipoproteína de muy baja densidad", abbr:"VLDL-C", value:36.6, unit:"mg/dL", reference:"8.0–30.0", flag:"high"},
+      {test:"Low-density lipoprotein", test_es:"Lipoproteína de baja densidad", abbr:"LDL-C", value:97.4, unit:"mg/dL", reference:"<100", flag:"normal"},
+      {test:"Atherogenic risk", test_es:"Riesgo aterogénico", value:4.5, unit:"%", reference:"3.3–4.5", flag:"upper_limit"},
+    ]},
+    {name:"Complete blood count", specimen:"whole blood EDTA", method:"laser flow cytometry (MAPSS)", results:[
+      {test:"Red blood cells", test_es:"Eritrocitos", abbr:"RBC", value:5.19, unit:"10^6/uL", reference:"4.5–5.8", flag:"normal"},
+      {test:"Hemoglobin", test_es:"Hemoglobina", abbr:"HGB", value:15.4, unit:"g/dL", reference:"13.5–17.5", flag:"normal"},
+      {test:"Hematocrit", test_es:"Hematocrito", abbr:"HCT", value:47.7, unit:"%", reference:"40.5–52.5", flag:"normal"},
+      {test:"Mean corpuscular volume", test_es:"Volumen corpuscular medio", abbr:"MCV", value:92.0, unit:"fL", reference:"83.0–100.0", flag:"normal"},
+      {test:"Mean corpuscular hemoglobin", test_es:"Hemoglobina corpuscular media", abbr:"MCH", value:29.7, unit:"pg", reference:"28.0–32.0", flag:"normal"},
+      {test:"Mean corpuscular hemoglobin concentration", test_es:"Concentración de Hgb corpuscular media", abbr:"MCHC", value:32.3, unit:"g/dL", reference:"32.0–34.5", flag:"normal"},
+      {test:"Red cell distribution width", test_es:"Distribución eritrocitaria", abbr:"RDW", value:12.4, unit:"%", reference:"11.6–15.0", flag:"normal"},
+      {test:"Platelets", test_es:"Plaquetas", abbr:"PLT", value:306.0, unit:"10^3/uL", reference:"150.0–400.0", flag:"normal"},
+      {test:"Platelet distribution width", test_es:"Distribución plaquetaria", abbr:"PDW", value:19.6, unit:"%", reference:"0.0–99.9", flag:"normal"},
+      {test:"Mean platelet volume", test_es:"Volumen plaquetario medio", abbr:"MPV", value:6.49, unit:"fL", reference:"7.4–10.4", flag:"low"},
+      {test:"White blood cells", test_es:"Leucocitos", abbr:"WBC", value:10.6, unit:"10^3/uL", reference:"4.5–11.0", flag:"normal"},
+      {test:"Neutrophils percent", test_es:"Neutrófilos", abbr:"NE", value:56.2, unit:"%", reference:"40.0–63.6", flag:"normal"},
+      {test:"Lymphocytes percent", test_es:"Linfocitos", abbr:"LYN", value:28.4, unit:"%", reference:"22.2–43.6", flag:"normal"},
+      {test:"Monocytes percent", test_es:"Monocitos", abbr:"MO", value:7.26, unit:"%", reference:"0.1–7.3", flag:"normal"},
+      {test:"Eosinophils percent", test_es:"Eosinófilos", abbr:"EO", value:7.07, unit:"%", reference:"0.4–4.1", flag:"high"},
+      {test:"Basophils percent", test_es:"Basófilos", abbr:"BA", value:1.09, unit:"%", reference:"0.0–1.0", flag:"high"},
+      {test:"Neutrophils absolute", test_es:"Neutrófilos (absoluto)", abbr:"NEU#", value:5.96, unit:"10^3/uL", reference:"1.8–7.0", flag:"normal"},
+      {test:"Lymphocytes absolute", test_es:"Linfocitos (absoluto)", abbr:"LYN#", value:3.01, unit:"10^3/uL", reference:"1.0–4.8", flag:"normal"},
+      {test:"Monocytes absolute", test_es:"Monocitos (absoluto)", abbr:"MO#", value:0.77, unit:"10^3/uL", reference:"1.1–3.0", flag:"low"},
+      {test:"Eosinophils absolute", test_es:"Eosinófilos (absoluto)", abbr:"EO#", value:0.75, unit:"10^3/uL", reference:"0.0–0.7", flag:"high"},
+      {test:"Basophils absolute", test_es:"Basófilos (absoluto)", abbr:"BA#", value:0.12, unit:"10^3/uL", reference:"0.0–0.1", flag:"high"},
+    ]},
+    {name:"Urinalysis", specimen:"urine", method:"macro/microscopy, reflectance photometry", results:[
+      {test:"pH", test_es:"pH", value:5.0, unit:"", reference:"4.5–8.0", flag:"normal"},
+      {test:"Specific gravity", test_es:"Densidad", value:1.03, unit:"", reference:"1.010–1.030", flag:"upper_limit"},
+      {test:"Color", test_es:"Color", value:"medium yellow", unit:"", reference:"light yellow", flag:"non_numeric"},
+      {test:"Appearance", test_es:"Aspecto", value:"slightly cloudy", unit:"", reference:"clear", flag:"abnormal"},
+      {test:"Protein", test_es:"Proteínas", value:"negative", unit:"", reference:"negative", flag:"normal"},
+      {test:"Glucose", test_es:"Glucosa", value:"negative", unit:"", reference:"negative", flag:"normal"},
+      {test:"Ketones", test_es:"Cetonas", value:"negative", unit:"", reference:"negative", flag:"normal"},
+      {test:"Urobilinogen", test_es:"Urobilinógeno", value:"negative", unit:"", reference:"negative", flag:"normal"},
+      {test:"Bilirubin", test_es:"Bilirrubinas", value:"negative", unit:"", reference:"negative", flag:"normal"},
+      {test:"Blood", test_es:"Sangre", value:"negative", unit:"", reference:"negative", flag:"normal"},
+      {test:"Nitrites", test_es:"Nitritos", value:"negative", unit:"", reference:"negative", flag:"normal"},
+      {test:"Leukocyte esterase", test_es:"Esterasa leucocitaria", value:"negative", unit:"", reference:"negative", flag:"normal"},
+      {test:"Epithelial cells", test_es:"Células epiteliales", value:"scarce", unit:"/field", reference:"scarce", flag:"normal"},
+      {test:"Mucin filament", test_es:"Filamento de mucina", value:"moderate", unit:"/field", reference:"negative", flag:"abnormal"},
+      {test:"Leukocytes", test_es:"Leucocitos", value:"0-2", unit:"/field", reference:"<10", flag:"normal"},
+      {test:"Red blood cells", test_es:"Hematíes", value:"2-4", unit:"/field", reference:"<2", flag:"high"},
+      {test:"Crystals", test_es:"Cristales", value:"scarce calcium oxalate", unit:"/field", reference:"negative", flag:"abnormal"},
+      {test:"Bacteria", test_es:"Bacterias", value:"scarce", unit:"/field", reference:"scarce", flag:"normal"},
+      {test:"Yeast", test_es:"Levaduras", value:"negative", unit:"/field", reference:"negative", flag:"normal"},
+      {test:"Hyphae", test_es:"Hifas", value:"negative", unit:"/field", reference:"negative", flag:"normal"},
+      {test:"Casts (hyaline)", test_es:"Cilindros (hialinos)", value:"0-1", unit:"/field", reference:"negative", flag:"abnormal"},
+      {test:"Pus cells", test_es:"Piocitos", value:"negative", unit:"/field", reference:"negative", flag:"normal"},
+      {test:"Sperm", test_es:"Espermas", value:"negative", unit:"/field", reference:"negative", flag:"normal"},
+      {test:"Trichomonas", test_es:"Trichomonas", value:"negative", unit:"/field", reference:"negative", flag:"normal"},
+    ]},
+    {name:"Vitamin D", specimen:"serum", method:"chemiluminescence", results:[
+      {test:"25-hydroxy vitamin D total", test_es:"Vitamina D (OH) 25 total", value:33.7, unit:"ng/mL", reference:"6.6–49.9", flag:"normal"},
+    ]},
+  ]
+};
+
+// Map a lab flag to a display class + label. Out-of-range = anything not "normal".
+function flagInfo(flag){
+  switch(flag){
+    case "normal":               return {cls:"good", label:t("fl_normal"), out:false};
+    case "high":                 return {cls:"bad",  label:t("fl_high"), out:true};
+    case "low":                  return {cls:"low",  label:t("fl_low"),  out:true};
+    case "low_according_to_lab_reference": return {cls:"low", label:t("fl_low"), out:true};
+    case "upper_limit":          return {cls:"warn", label:t("fl_upper"), out:true};
+    case "abnormal":             return {cls:"bad",  label:t("fl_abnormal"), out:true};
+    case "non_numeric":          return {cls:"info", label:t("fl_note"), out:true};
+    default:                     return {cls:"info", label:flag||"—", out:true};
+  }
+}
+function valClass(cls){ return cls==="bad"?"bad":cls==="low"?"low":cls==="warn"?"warn":""; }
+
+const labState={search:"", panel:"all", outOnly:false};
+
+function labMatches(r){
+  const info=flagInfo(r.flag);
+  if(labState.outOnly && !info.out) return false;
+  if(labState.search){
+    const q=labState.search.toLowerCase();
+    const hay=(r.test+" "+(r.test_es||"")+" "+(r.abbr||"")).toLowerCase();
+    if(!hay.includes(q)) return false;
+  }
+  return true;
+}
+
+function renderLabKpis(){
+  let total=0, out=0, warn=0;
+  for(const p of LABS.panels) for(const r of p.results){
+    total++; const i=flagInfo(r.flag);
+    if(i.out) out++;
+    if(i.cls==="warn") warn++;
+  }
+  const cards=[
+    {label:t("lab_tests"), icon:"🧪", value:total, unit:"", sub:t("lab_panels")(LABS.panels.length), cls:""},
+    {label:t("lab_inrange"), icon:"✅", value:total-out, unit:"", sub:t("lab_within"), cls:"good"},
+    {label:t("lab_outrange"), icon:"⚠️", value:out, unit:"", sub:t("lab_outside"), cls:out?"bad":"good"},
+    {label:t("lab_border"), icon:"🟡", value:warn, unit:"", sub:t("lab_atlimit"), cls:warn?"warn":""},
+  ];
+  document.getElementById("labKpis").innerHTML=cards.map(c=>`
+    <div class="card kpi">
+      <div class="label">${c.icon} ${c.label}
+        ${c.cls?`<span class="pill ${c.cls}" style="margin-left:auto">${c.cls==="good"?t("good"):c.cls==="warn"?t("fair"):t("poor")}</span>`:""}
+      </div>
+      <div class="value">${c.value}<small>${c.unit}</small></div>
+      <div class="sub">${c.sub}</div>
+    </div>`).join("");
+}
+
+function renderLabPanels(){
+  const host=document.getElementById("labPanels");
+  let html="";
+  for(const p of LABS.panels){
+    if(labState.panel!=="all" && p.name!==labState.panel) continue;
+    const rows=p.results.filter(labMatches);
+    if(!rows.length) continue;
+    html+=`<div class="card lab-panel">
+      <h3>${ES()&&PANEL_ES[p.name]?PANEL_ES[p.name]:p.name}</h3>
+      <p class="csub">${ES()&&SPECIMEN_ES[p.specimen]?SPECIMEN_ES[p.specimen]:p.specimen}${p.method?" · "+(ES()&&METHOD_ES[p.method]?METHOD_ES[p.method]:p.method):""}</p>
+      <table>
+        <thead><tr><th>${t("th_test")}</th><th style="text-align:right">${t("th_value")}</th><th style="text-align:right">${t("th_reference")}</th><th style="text-align:right">${t("th_status")}</th></tr></thead>
+        <tbody>${rows.map(r=>{
+          const i=flagInfo(r.flag);
+          const vc=valClass(i.cls);
+          const unit=r.unit?` <small style="color:var(--muted);font-weight:600">${r.unit}</small>`:"";
+          const name=(ES()&&r.test_es)?r.test_es:r.test;
+          return `<tr>
+            <td>${name}${r.abbr?`<span class="lab-abbr">${r.abbr}</span>`:""}</td>
+            <td class="val ${vc}">${trVal(r.value)}${unit}</td>
+            <td class="ref">${trVal(r.reference)}</td>
+            <td class="st"><span class="pill ${i.cls}">${i.label}</span></td>
+          </tr>`;
+        }).join("")}</tbody>
+      </table>
+    </div>`;
+  }
+  host.innerHTML=html||`<div class="card"><div class="lab-empty">${t("lab_empty")}</div></div>`;
+}
+
+function renderLabs(){
+  const d=new Date(LABS.collectionDate+"T00:00:00");
+  document.getElementById("labMeta").textContent=
+    t("lab_collected")(d.toLocaleDateString(locale(),{year:"numeric",month:"long",day:"numeric"}),LABS.collectionTime);
+  const sel=document.getElementById("labPanel");
+  if(sel.dataset.built!==LANG){
+    const cur=sel.value||"all";
+    sel.innerHTML=`<option value="all">${t("lab_allpanels")}</option>`+
+      LABS.panels.map(p=>`<option value="${p.name}">${ES()&&PANEL_ES[p.name]?PANEL_ES[p.name]:p.name}</option>`).join("");
+    sel.value=cur; sel.dataset.built=LANG;
+  }
+  renderLabKpis();
+  renderLabPanels();
+}
+
+// ---------- Body composition (seca mBCA bioimpedance) ----------
+// Numeric series only — no identifying header data is stored here.
+const BODY={
+  date:"2026-02-28",
+  height:171.6,
+  s:{
+    weight:120.65, bmi:41.0, fatMass:47.41, fatPct:39.3, fmi:16.1,
+    leanMass:73.24, leanPct:60.7, ffmi:24.9, smm:35.36, smmPct:29.3, smmPerc:87,
+    smi:12.0, asmi:11.2, appSmm:32.87, vat:4.8, waist:114,
+    tbw:52.8, tbwPct:43.5, ecw:22.6, ecwPct:18.6, ecwTbw:42.8,
+    pha:7.2, ree:2213, tee:4205, pal:1.9, muscleScore:80, fatScore:22
+  },
+  trend:[
+    {date:"2025-06-28", fm:46.24, smm:35.88, r:403,   xc:49.3},
+    {date:"2025-07-22", fm:46.12, smm:35.33, r:407.6, xc:48.7},
+    {date:"2025-08-23", fm:46.52, smm:34.87, r:411.7, xc:49.1},
+    {date:"2025-09-13", fm:44.49, smm:36.01, r:393.3, xc:45.2},
+    {date:"2025-10-04", fm:45.84, smm:34.87, r:417.6, xc:49.2},
+    {date:"2025-10-25", fm:44.67, smm:35.44, r:403.6, xc:46.9},
+    {date:"2025-11-29", fm:44.85, smm:35.76, r:399.2, xc:47.7},
+    {date:"2025-12-20", fm:45.31, smm:35.24, r:392.2, xc:45.9},
+    {date:"2026-01-24", fm:45.72, smm:35.78, r:387.5, xc:45.4},
+    {date:"2026-02-14", fm:47.15, smm:35.14, r:405.1, xc:48.6},
+    {date:"2026-02-28", fm:47.41, smm:35.36, r:412.1, xc:51.9}
+  ],
+  // segmental skeletal muscle mass (kg) with the device's typical reference band
+  segments:[
+    {key:"seg_torso", value:16.94, lo:14.8, hi:17.43, delta:0.27},
+    {key:"seg_arm_l", value:2.62,  lo:1.81, hi:2.38,  delta:0.05},
+    {key:"seg_arm_r", value:2.8,   lo:1.91, hi:2.49,  delta:0.05},
+    {key:"seg_leg_l", value:6.62,  lo:6.07, hi:7.19,  delta:-0.1},
+    {key:"seg_leg_r", value:6.38,  lo:6.07, hi:7.18,  delta:-0.05}
+  ]
+};
+
+const BCH={};
+function destroyBody(){ Object.values(BCH).forEach(c=>c&&c.destroy()); for(const k in BCH) delete BCH[k]; }
+function bcDate(iso){ return new Date(iso+"T00:00:00").toLocaleDateString(locale(),{month:"short",day:"numeric"}); }
+function phaseAngle(r,xc){ return Math.atan(xc/r)*180/Math.PI; }
+
+function renderBodyKpis(){
+  const s=BODY.s;
+  const cards=[
+    {label:t("bc_weight"), icon:"⚖️", value:s.weight.toFixed(1), unit:" kg", sub:t("bc_weight_sub")(BODY.height), cls:""},
+    {label:t("bc_bmi"), icon:"📏", value:s.bmi.toFixed(1), unit:"", sub:t("bc_bmi_sub"), cls:"bad", pill:t("bmi_obese")},
+    {label:t("bc_fat"), icon:"🫃", value:s.fatPct.toFixed(1), unit:" %", sub:t("bc_fat_sub")(s.fatMass.toFixed(1)), cls:"bad", pill:t("fat_high")},
+    {label:t("bc_muscle"), icon:"💪", value:s.smm.toFixed(1), unit:" kg", sub:t("bc_muscle_sub")(s.smmPct,s.smmPerc), cls:"good", pill:t("fl_normal")},
+    {label:t("bc_vat"), icon:"🔥", value:s.vat.toFixed(1), unit:" L", sub:t("bc_vat_sub")(s.waist), cls:"bad", pill:t("vat_high")},
+    {label:t("bc_pha"), icon:"⚡", value:s.pha.toFixed(1), unit:" °", sub:t("bc_pha_sub"), cls:"good", pill:t("pha_exc")}
+  ];
+  document.getElementById("bodyKpis").innerHTML=cards.map(c=>`
+    <div class="card kpi">
+      <div class="label">${c.icon} ${c.label}
+        ${c.cls?`<span class="pill ${c.cls}" style="margin-left:auto">${c.pill}</span>`:""}
+      </div>
+      <div class="value">${c.value}<small>${c.unit}</small></div>
+      <div class="sub">${c.sub}</div>
+    </div>`).join("");
+}
+
+function renderBodyDetails(){
+  const s=BODY.s;
+  const nf=v=>v.toLocaleString(locale());
+  const list=[
+    [t("d_tbw"), `${s.tbw} <small>L (${s.tbwPct}%)</small>`],
+    [t("d_ecw"), `${s.ecw} <small>L (${s.ecwPct}%)</small>`],
+    [t("d_ecwtbw"), `${s.ecwTbw}<small>%</small>`],
+    [t("d_ree"), `${nf(s.ree)} <small>kcal</small>`],
+    [t("d_tee"), `${nf(s.tee)} <small>kcal</small>`],
+    [t("d_pal"), `${s.pal}`],
+    [t("d_ffmi"), `${s.ffmi} <small>kg/m²</small>`],
+    [t("d_smi"), `${s.smi} <small>kg/m²</small>`],
+    [t("d_asmi"), `${s.asmi} <small>kg/m²</small>`],
+    [t("d_waist"), `${s.waist} <small>cm</small>`],
+    [t("d_score"), `💪 ${s.muscleScore} · 🫃 ${s.fatScore}`]
+  ];
+  document.getElementById("bodyDetails").innerHTML=list.map(r=>
+    `<div class="bstat"><span class="k">${r[0]}</span><span class="v">${r[1]}</span></div>`).join("");
+}
+
+function renderBodyCharts(){
+  destroyBody();
+  const T=BODY.trend, L=T.map(p=>bcDate(p.date));
+
+  // Fat vs muscle trend
+  BCH.trend=new Chart(cBcTrend,{type:"line",
+    data:{labels:L,datasets:[
+      {label:t("bc_fat_lbl"),data:T.map(p=>p.fm),borderColor:"#f59e0b",backgroundColor:"rgba(245,158,11,.12)",fill:true,tension:.3,borderWidth:2,pointRadius:2},
+      {label:t("bc_musc_lbl"),data:T.map(p=>p.smm),borderColor:"#22c55e",backgroundColor:"rgba(34,197,94,.10)",fill:true,tension:.3,borderWidth:2,pointRadius:2}
+    ]},
+    options:baseOpts({plugins:{legend:{display:false},
+      tooltip:{backgroundColor:"#0b1220",borderColor:"#334155",borderWidth:1,padding:10,callbacks:{label:c=>" "+c.dataset.label+": "+c.parsed.y.toFixed(2)+" kg"}}},
+      scales:{x:{grid:{color:GRID},ticks:{color:TICK,autoSkip:true,maxTicksLimit:11}},
+        y:{grid:{color:GRID},ticks:{color:TICK,callback:v=>v+" kg"},beginAtZero:false}}})});
+
+  // Composition doughnut
+  const s=BODY.s, other=+(s.weight-s.fatMass-s.smm).toFixed(2);
+  BCH.comp=new Chart(cBcComp,{type:"doughnut",
+    data:{labels:[t("bc_fat_lbl"),t("bc_musc_lbl"),t("bc_other_lbl")],
+      datasets:[{data:[s.fatMass,s.smm,other],backgroundColor:["#f59e0b","#22c55e","#38bdf8"],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:"62%",
+      plugins:{legend:{position:"right",labels:{color:TICK,boxWidth:12,font:{size:11}}},
+        tooltip:{backgroundColor:"#0b1220",borderColor:"#334155",borderWidth:1,padding:10,callbacks:{label:c=>" "+c.label+": "+c.parsed.toFixed(1)+" kg"}}}}});
+
+  // Phase angle trend (derived from bioimpedance R & Xc)
+  const pha=T.map(p=>+phaseAngle(p.r,p.xc).toFixed(2));
+  BCH.pha=new Chart(cBcPha,{type:"line",
+    data:{labels:L,datasets:[{data:pha,borderColor:"#a78bfa",backgroundColor:"rgba(167,139,250,.14)",fill:true,tension:.35,borderWidth:2,pointRadius:2}]},
+    options:baseOpts({plugins:{legend:{display:false},
+      tooltip:{backgroundColor:"#0b1220",borderColor:"#334155",borderWidth:1,padding:10,callbacks:{label:c=>" "+c.parsed.y.toFixed(2)+" °"}}},
+      scales:{x:{grid:{color:GRID},ticks:{color:TICK,autoSkip:true,maxTicksLimit:8}},
+        y:{grid:{color:GRID},ticks:{color:TICK,callback:v=>v+"°"},beginAtZero:false,suggestedMin:6,suggestedMax:7.5}}}),
+    plugins:[thresholdPlugin([{v:6,color:"#64748b"}])]});
+
+  // Segmental muscle mass — you vs typical reference (horizontal)
+  const seg=BODY.segments;
+  BCH.seg=new Chart(cBcSeg,{type:"bar",
+    data:{labels:seg.map(x=>t(x.key)),datasets:[
+      {label:t("bc_you"),data:seg.map(x=>x.value),
+        backgroundColor:seg.map(x=>(x.value>=x.lo&&x.value<=x.hi)?"#22c55e":"#f59e0b"),borderRadius:5,barPercentage:.62},
+      {label:t("bc_ref"),data:seg.map(x=>+(((x.lo+x.hi)/2)).toFixed(2)),
+        backgroundColor:"#475569",borderRadius:5,barPercentage:.62}
+    ]},
+    options:baseOpts({indexAxis:"y",
+      plugins:{legend:{display:true,labels:{color:TICK,boxWidth:12,font:{size:11}}},
+        tooltip:{backgroundColor:"#0b1220",borderColor:"#334155",borderWidth:1,padding:10,callbacks:{
+          label:c=>" "+c.dataset.label+": "+c.parsed.x.toFixed(2)+" kg",
+          afterBody:items=>t("bc_seg_range")(seg[items[0].dataIndex].lo,seg[items[0].dataIndex].hi)}}},
+      scales:{x:{grid:{color:GRID},ticks:{color:TICK,callback:v=>v+" kg"},beginAtZero:true},
+        y:{grid:{color:GRID},ticks:{color:TICK}}}})});
+}
+
+function renderBody(){
+  document.getElementById("bodyMeta").textContent=
+    t("body_meta")(new Date(BODY.date+"T00:00:00").toLocaleDateString(locale(),{year:"numeric",month:"long",day:"numeric"}));
+  renderBodyKpis();
+  renderBodyDetails();
+  renderBodyCharts();
+}
+
+// ---------- View switching ----------
+let currentView="therapy";
+function setView(v){
+  currentView=v;
+  const isLabs=v==="labs", isBody=v==="body", isTherapy=v==="therapy";
+  document.getElementById("labs").classList.toggle("hidden", !isLabs);
+  document.getElementById("body").classList.toggle("hidden", !isBody);
+  document.getElementById("range").classList.toggle("hidden", !isTherapy || !DATA);
+  document.getElementById("loadBtn").classList.toggle("hidden", !isTherapy || !DATA);
+  document.getElementById("dash").classList.toggle("hidden", !isTherapy || !DATA);
+  document.getElementById("drop").classList.toggle("hidden", !isTherapy || !!DATA);
+  document.querySelectorAll("#viewSwitch button").forEach(b=>b.classList.toggle("active", b.dataset.v===v));
+  if(isLabs) renderLabs();
+  if(isBody) renderBody();
 }
 
 // events
@@ -542,6 +1196,23 @@ document.getElementById("range").addEventListener("click",e=>{
 });
 
 document.getElementById("exportCsv").addEventListener("click",()=>{ if(DATA) exportCsv(); });
+
+// view switch + lab filters
+document.getElementById("viewSwitch").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  setView(b.dataset.v);
+});
+document.getElementById("labSearch").addEventListener("input",e=>{ labState.search=e.target.value.trim(); renderLabPanels(); });
+document.getElementById("labPanel").addEventListener("change",e=>{ labState.panel=e.target.value; renderLabPanels(); });
+document.getElementById("labOutOnly").addEventListener("change",e=>{ labState.outOnly=e.target.checked; renderLabPanels(); });
+document.getElementById("langSwitch").addEventListener("click",e=>{
+  const b=e.target.closest("button"); if(!b) return;
+  setLang(b.dataset.l);
+});
+
+// Initialise language (from saved preference / browser) on first paint
+document.querySelectorAll("#langSwitch button").forEach(b=>b.classList.toggle("active", b.dataset.l===LANG));
+applyStaticLang();
 
 // Auto-load statistic.psstat if served next to this file (e.g. via a local server)
 fetch("statistic.psstat").then(r=>r.ok?r.text():Promise.reject()).then(t=>loadText(t,"statistic.psstat")).catch(()=>{});
