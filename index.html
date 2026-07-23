@@ -148,6 +148,7 @@
       <button data-v="therapy" class="active" data-i18n="nav_therapy">🌙 Therapy</button>
       <button data-v="labs" data-i18n="nav_labs">🧪 Labs</button>
       <button data-v="body" data-i18n="nav_body">🧬 Body</button>
+      <button data-v="dexa" data-i18n="nav_dexa">🦴 DEXA</button>
     </div>
     <div class="seg hidden" id="range">
       <button data-d="7">7d</button>
@@ -297,6 +298,49 @@
       <div class="bstats" id="bodyDetails"></div>
     </div>
   </section>
+
+  <section id="dexa" class="hidden">
+    <div class="labs-head">
+      <div>
+        <h2 data-i18n="dexa_title">DEXA scan</h2>
+        <p class="csub" id="dexaMeta"></p>
+      </div>
+    </div>
+    <div class="grid kpis" id="dexaKpis"></div>
+
+    <div class="grid charts" style="margin-bottom:18px">
+      <div class="card full">
+        <h3 data-i18n="dx_recomp_t">Recomposition vs previous scan</h3>
+        <p class="csub" id="dxRecompSub">Fat mass then and now (kg).</p>
+        <div class="chart-wrap"><canvas id="cDxRecomp"></canvas></div>
+      </div>
+      <div class="card">
+        <h3 data-i18n="dx_comp_t">Composition</h3>
+        <p class="csub" data-i18n="dx_comp_s">Fat vs lean + bone (kg).</p>
+        <div class="chart-wrap"><canvas id="cDxComp"></canvas></div>
+      </div>
+      <div class="card">
+        <h3 data-i18n="dx_dist_t">Fat distribution</h3>
+        <p class="csub" data-i18n="dx_dist_s">Android (waist) vs gynoid (hips) fat %.</p>
+        <div class="chart-wrap"><canvas id="cDxDist"></canvas></div>
+      </div>
+      <div class="card full">
+        <h3 data-i18n="dx_seg_t">Segmental lean &amp; fat</h3>
+        <p class="csub" data-i18n="dx_seg_s">Per limb — left/right symmetry.</p>
+        <div class="chart-wrap tall"><canvas id="cDxSeg"></canvas></div>
+        <div class="legend">
+          <span><span class="dot" style="background:#22c55e"></span><span data-i18n="dx_lean_lbl">Lean</span></span>
+          <span><span class="dot" style="background:#f59e0b"></span><span data-i18n="dx_fat_lbl">Fat</span></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 data-i18n="dx_details_t">Bone, indices &amp; change</h3>
+      <p class="csub" data-i18n="dx_details_s">From the DXA report.</p>
+      <div class="bstats" id="dexaDetails"></div>
+    </div>
+  </section>
 </main>
 
 <footer data-i18n="footer">Built from the prisma JOURNAL data format · All processing happens locally in your browser.</footer>
@@ -385,7 +429,33 @@ const I18N = {
     d_tbw:"Total body water", d_ecw:"Extracellular water", d_ecwtbw:"ECW/TBW ratio",
     d_ree:"Resting energy (REE)", d_tee:"Total energy (TEE)", d_pal:"Activity level (PAL)",
     d_ffmi:"Fat-free mass index", d_smi:"Skeletal muscle index", d_asmi:"Appendicular SMI (DXA-eq.)",
-    d_waist:"Waist circumference", d_score:"TRU Body Score"
+    d_waist:"Waist circumference", d_score:"TRU Body Score",
+    // DEXA
+    nav_dexa:"🦴 DEXA",
+    dexa_title:"DEXA scan",
+    dexa_meta:d=>`Scanned ${d} · Hologic Horizon Wi (DXA)`,
+    dx_fat:"Body fat", dx_bone:"Bone density", dx_lean:"Lean mass", dx_vat:"Visceral fat",
+    dx_rsmi:"Muscle index", dx_ag:"Android/Gynoid",
+    dx_obesity:"Obesity", dx_strong:"Strong", dx_athlete:"Athlete", dx_high:"High", dx_fitness:"Fitness", dx_apple:"Apple",
+    dx_fat_sub:kg=>`${kg} kg fat mass`,
+    dx_bone_sub:(tt,zz)=>`T +${tt} · Z +${zz} · no osteoporosis`,
+    dx_lean_sub:(pct,lmi)=>`${pct}% · LMI ${lmi}`,
+    dx_vat_sub:d=>`↓ ${d} cm² since last scan`,
+    dx_rsmi_sub:"appendicular (arms + legs)",
+    dx_ag_sub:"apple-shape pattern",
+    dx_recomp_t:"Recomposition vs previous scan",
+    dx_recomp_s:kg=>`Fat mass then and now (kg) — you lost ${kg} kg of fat.`,
+    dx_comp_t:"Composition", dx_comp_s:"Fat vs lean + bone (kg).",
+    dx_dist_t:"Fat distribution", dx_dist_s:"Android (waist) vs gynoid (hips) fat %.",
+    dx_seg_t:"Segmental lean & fat", dx_seg_s:"Per limb — left/right symmetry.",
+    dx_details_t:"Bone, indices & change", dx_details_s:"From the DXA report.",
+    dx_fat_lbl:"Fat", dx_lean_lbl:"Lean", dx_leanbone_lbl:"Lean + bone",
+    dx_android:"Android", dx_gynoid:"Gynoid",
+    dx_bmd:"Bone mineral density", dx_tscore:"T-score", dx_zscore:"Z-score",
+    dx_fmi:"Fat mass index", dx_lmi:"Lean mass index", dx_rsmi_l:"RSMI (appendicular)",
+    dx_ag_l:"Android/Gynoid ratio", dx_vat_l:"Visceral fat", dx_total:"Total mass",
+    dx_fatloss:"Fat lost vs last scan", dx_vatred:"Visceral fat reduction",
+    dx_pctyoung:"Fat percentile (young adults)", dx_pctage:"Fat percentile (age)", dx_scanner:"Scanner"
   },
   es:{
     app_title:"Panel de terapia CPAP",
@@ -461,7 +531,33 @@ const I18N = {
     d_tbw:"Agua corporal total", d_ecw:"Agua extracelular", d_ecwtbw:"Relación ECW/TBW",
     d_ree:"Energía en reposo (REE)", d_tee:"Energía total (TEE)", d_pal:"Nivel de actividad (PAL)",
     d_ffmi:"Índice de masa magra", d_smi:"Índice de músculo esq.", d_asmi:"IME apendicular (DXA-eq.)",
-    d_waist:"Circunferencia de cintura", d_score:"TRU Body Score"
+    d_waist:"Circunferencia de cintura", d_score:"TRU Body Score",
+    // DEXA
+    nav_dexa:"🦴 DEXA",
+    dexa_title:"Estudio DEXA",
+    dexa_meta:d=>`Estudio ${d} · Hologic Horizon Wi (DXA)`,
+    dx_fat:"Grasa corporal", dx_bone:"Densidad ósea", dx_lean:"Masa magra", dx_vat:"Grasa visceral",
+    dx_rsmi:"Índice muscular", dx_ag:"Androide/Ginoide",
+    dx_obesity:"Obesidad", dx_strong:"Fuerte", dx_athlete:"Atleta", dx_high:"Alta", dx_fitness:"Fitness", dx_apple:"Manzana",
+    dx_fat_sub:kg=>`${kg} kg de masa grasa`,
+    dx_bone_sub:(tt,zz)=>`T +${tt} · Z +${zz} · sin osteoporosis`,
+    dx_lean_sub:(pct,lmi)=>`${pct}% · IMM ${lmi}`,
+    dx_vat_sub:d=>`↓ ${d} cm² desde el estudio previo`,
+    dx_rsmi_sub:"apendicular (brazos + piernas)",
+    dx_ag_sub:"patrón forma de manzana",
+    dx_recomp_t:"Recomposición vs estudio previo",
+    dx_recomp_s:kg=>`Masa grasa antes y ahora (kg) — perdiste ${kg} kg de grasa.`,
+    dx_comp_t:"Composición", dx_comp_s:"Grasa vs magro + hueso (kg).",
+    dx_dist_t:"Distribución de grasa", dx_dist_s:"Grasa androide (cintura) vs ginoide (cadera) %.",
+    dx_seg_t:"Magro y grasa segmental", dx_seg_s:"Por extremidad — simetría izquierda/derecha.",
+    dx_details_t:"Hueso, índices y cambio", dx_details_s:"Del reporte DXA.",
+    dx_fat_lbl:"Grasa", dx_lean_lbl:"Magro", dx_leanbone_lbl:"Magro + hueso",
+    dx_android:"Androide", dx_gynoid:"Ginoide",
+    dx_bmd:"Densidad mineral ósea", dx_tscore:"T-score", dx_zscore:"Z-score",
+    dx_fmi:"Índice de masa grasa", dx_lmi:"Índice de masa magra", dx_rsmi_l:"RSMI (apendicular)",
+    dx_ag_l:"Relación androide/ginoide", dx_vat_l:"Grasa visceral", dx_total:"Masa total",
+    dx_fatloss:"Grasa perdida vs previo", dx_vatred:"Reducción de grasa visceral",
+    dx_pctyoung:"Percentil de grasa (jóvenes)", dx_pctage:"Percentil de grasa (edad)", dx_scanner:"Equipo"
   }
 };
 function t(key){ const v=(I18N[LANG]&&I18N[LANG][key]); return v!==undefined?v:I18N.en[key]; }
@@ -505,6 +601,7 @@ function setLang(l){
   const sel=document.getElementById("labPanel"); if(sel) sel.dataset.built="";  // force rebuild of options
   if(currentView==="labs") renderLabs();
   if(currentView==="body") renderBody();
+  if(currentView==="dexa") renderDexa();
 }
 
 // ---------- Parsing (faithful to the original prisma JOURNAL logic) ----------
@@ -1159,13 +1256,137 @@ function renderBody(){
   renderBodyCharts();
 }
 
+// ---------- DEXA (Hologic Horizon Wi — true dual X-ray absorptiometry) ----------
+// Numeric series only — no identifying header data is stored here.
+const DEXA={
+  date:"2025-09-22",
+  prior:"2024-11-04",
+  height:171.5,
+  s:{
+    weight:121.5, totalMass:123.0, bmi:41.3,
+    fatMass:43.6, fatPct:35.5, leanBmc:79.3, leanPct:64.5,
+    fmi:14.8, lmi:25.9, bmd:1.334, tScore:1.7, zScore:1.7,
+    android:40.2, gynoid:33.0, agRatio:1.22,
+    vatMass:1203, vatArea:250, rsmi:10.9,
+    pctYoung:93, pctAge:92, fatLoss:6.9, vatReduction:83
+  },
+  // appendicular lean/fat per limb (kg)
+  segments:[
+    {key:"seg_arm_l", lean:4.849, fat:2.845},
+    {key:"seg_arm_r", lean:4.849, fat:2.845},
+    {key:"seg_leg_l", lean:11.850, fat:5.447},
+    {key:"seg_leg_r", lean:12.065, fat:5.253}
+  ]
+};
+
+const DXH={};
+function destroyDexa(){ Object.values(DXH).forEach(c=>c&&c.destroy()); for(const k in DXH) delete DXH[k]; }
+function dxDate(iso){ return new Date(iso+"T00:00:00").toLocaleDateString(locale(),{month:"short",year:"numeric"}); }
+
+function renderDexaKpis(){
+  const s=DEXA.s;
+  const cards=[
+    {label:t("dx_fat"), icon:"🫃", value:s.fatPct.toFixed(1), unit:" %", sub:t("dx_fat_sub")(s.fatMass.toFixed(1)), cls:"bad", pill:t("dx_obesity")},
+    {label:t("dx_bone"), icon:"🦴", value:"+"+s.tScore.toFixed(1), unit:" T", sub:t("dx_bone_sub")(s.tScore.toFixed(1),s.zScore.toFixed(1)), cls:"good", pill:t("dx_strong")},
+    {label:t("dx_lean"), icon:"💪", value:s.leanBmc.toFixed(1), unit:" kg", sub:t("dx_lean_sub")(s.leanPct,s.lmi), cls:"good", pill:t("dx_athlete")},
+    {label:t("dx_vat"), icon:"🔥", value:s.vatArea, unit:" cm²", sub:t("dx_vat_sub")(s.vatReduction), cls:"warn", pill:t("dx_high")},
+    {label:t("dx_rsmi"), icon:"🦵", value:s.rsmi.toFixed(1), unit:" kg/m²", sub:t("dx_rsmi_sub"), cls:"good", pill:t("dx_fitness")},
+    {label:t("dx_ag"), icon:"🍎", value:s.agRatio.toFixed(2), unit:"", sub:t("dx_ag_sub"), cls:"warn", pill:t("dx_apple")}
+  ];
+  document.getElementById("dexaKpis").innerHTML=cards.map(c=>`
+    <div class="card kpi">
+      <div class="label">${c.icon} ${c.label}
+        ${c.cls?`<span class="pill ${c.cls}" style="margin-left:auto">${c.pill}</span>`:""}
+      </div>
+      <div class="value">${c.value}<small>${c.unit}</small></div>
+      <div class="sub">${c.sub}</div>
+    </div>`).join("");
+}
+
+function renderDexaDetails(){
+  const s=DEXA.s;
+  const list=[
+    [t("dx_bmd"), `${s.bmd} <small>g/cm²</small>`],
+    [t("dx_tscore"), `+${s.tScore.toFixed(1)}`],
+    [t("dx_zscore"), `+${s.zScore.toFixed(1)}`],
+    [t("dx_total"), `${s.totalMass} <small>kg</small>`],
+    [t("dx_fmi"), `${s.fmi} <small>kg/m²</small>`],
+    [t("dx_lmi"), `${s.lmi} <small>kg/m²</small>`],
+    [t("dx_rsmi_l"), `${s.rsmi} <small>kg/m²</small>`],
+    [t("dx_ag_l"), `${s.agRatio}`],
+    [t("dx_vat_l"), `${s.vatMass} <small>g · ${s.vatArea} cm²</small>`],
+    [t("dx_fatloss"), `−${s.fatLoss} <small>kg</small>`],
+    [t("dx_vatred"), `−${s.vatReduction} <small>cm²</small>`],
+    [t("dx_pctyoung"), `P${s.pctYoung}`],
+    [t("dx_pctage"), `P${s.pctAge}`]
+  ];
+  document.getElementById("dexaDetails").innerHTML=list.map(r=>
+    `<div class="bstat"><span class="k">${r[0]}</span><span class="v">${r[1]}</span></div>`).join("");
+}
+
+function renderDexaCharts(){
+  destroyDexa();
+  const s=DEXA.s;
+
+  // Recomposition — fat mass then vs now
+  const fatBefore=+(s.fatMass+s.fatLoss).toFixed(1);
+  DXH.recomp=new Chart(cDxRecomp,{type:"bar",
+    data:{labels:[dxDate(DEXA.prior),dxDate(DEXA.date)],
+      datasets:[{data:[fatBefore,s.fatMass],
+        backgroundColor:["#475569","#22c55e"],borderRadius:6,barPercentage:.55}]},
+    options:baseOpts({plugins:{legend:{display:false},
+      tooltip:{backgroundColor:"#0b1220",borderColor:"#334155",borderWidth:1,padding:10,callbacks:{label:c=>" "+c.parsed.y.toFixed(1)+" kg"}}},
+      scales:{x:{grid:{color:GRID},ticks:{color:TICK}},
+        y:{grid:{color:GRID},ticks:{color:TICK,callback:v=>v+" kg"},beginAtZero:true}}})});
+
+  // Composition doughnut — fat vs lean+bone
+  DXH.comp=new Chart(cDxComp,{type:"doughnut",
+    data:{labels:[t("dx_fat_lbl"),t("dx_leanbone_lbl")],
+      datasets:[{data:[s.fatMass,s.leanBmc],backgroundColor:["#f59e0b","#22c55e"],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:"62%",
+      plugins:{legend:{position:"right",labels:{color:TICK,boxWidth:12,font:{size:11}}},
+        tooltip:{backgroundColor:"#0b1220",borderColor:"#334155",borderWidth:1,padding:10,callbacks:{label:c=>" "+c.label+": "+c.parsed.toFixed(1)+" kg"}}}}});
+
+  // Fat distribution — android vs gynoid
+  DXH.dist=new Chart(cDxDist,{type:"bar",
+    data:{labels:[t("dx_android"),t("dx_gynoid")],
+      datasets:[{data:[s.android,s.gynoid],backgroundColor:["#f472b6","#38bdf8"],borderRadius:6,barPercentage:.55}]},
+    options:baseOpts({plugins:{legend:{display:false},
+      tooltip:{backgroundColor:"#0b1220",borderColor:"#334155",borderWidth:1,padding:10,callbacks:{label:c=>" "+c.parsed.y.toFixed(1)+" %",footer:()=>"A/G "+s.agRatio}}},
+      scales:{x:{grid:{color:GRID},ticks:{color:TICK}},
+        y:{grid:{color:GRID},ticks:{color:TICK,callback:v=>v+"%"},beginAtZero:true}}})});
+
+  // Segmental lean & fat (horizontal grouped)
+  const seg=DEXA.segments;
+  DXH.seg=new Chart(cDxSeg,{type:"bar",
+    data:{labels:seg.map(x=>t(x.key)),datasets:[
+      {label:t("dx_lean_lbl"),data:seg.map(x=>x.lean),backgroundColor:"#22c55e",borderRadius:5,barPercentage:.7},
+      {label:t("dx_fat_lbl"),data:seg.map(x=>x.fat),backgroundColor:"#f59e0b",borderRadius:5,barPercentage:.7}
+    ]},
+    options:baseOpts({indexAxis:"y",
+      plugins:{legend:{display:false},
+        tooltip:{backgroundColor:"#0b1220",borderColor:"#334155",borderWidth:1,padding:10,callbacks:{label:c=>" "+c.dataset.label+": "+c.parsed.x.toFixed(2)+" kg"}}},
+      scales:{x:{grid:{color:GRID},ticks:{color:TICK,callback:v=>v+" kg"},beginAtZero:true},
+        y:{grid:{color:GRID},ticks:{color:TICK}}}})});
+}
+
+function renderDexa(){
+  document.getElementById("dexaMeta").textContent=
+    t("dexa_meta")(new Date(DEXA.date+"T00:00:00").toLocaleDateString(locale(),{year:"numeric",month:"long",day:"numeric"}));
+  document.getElementById("dxRecompSub").textContent=t("dx_recomp_s")(DEXA.s.fatLoss);
+  renderDexaKpis();
+  renderDexaDetails();
+  renderDexaCharts();
+}
+
 // ---------- View switching ----------
 let currentView="therapy";
 function setView(v){
   currentView=v;
-  const isLabs=v==="labs", isBody=v==="body", isTherapy=v==="therapy";
+  const isLabs=v==="labs", isBody=v==="body", isDexa=v==="dexa", isTherapy=v==="therapy";
   document.getElementById("labs").classList.toggle("hidden", !isLabs);
   document.getElementById("body").classList.toggle("hidden", !isBody);
+  document.getElementById("dexa").classList.toggle("hidden", !isDexa);
   document.getElementById("range").classList.toggle("hidden", !isTherapy || !DATA);
   document.getElementById("loadBtn").classList.toggle("hidden", !isTherapy || !DATA);
   document.getElementById("dash").classList.toggle("hidden", !isTherapy || !DATA);
@@ -1173,6 +1394,7 @@ function setView(v){
   document.querySelectorAll("#viewSwitch button").forEach(b=>b.classList.toggle("active", b.dataset.v===v));
   if(isLabs) renderLabs();
   if(isBody) renderBody();
+  if(isDexa) renderDexa();
 }
 
 // events
